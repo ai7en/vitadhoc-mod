@@ -13,10 +13,10 @@
  * One request for the game's record (jeuInfos.php: the file's MD5 and name
  * identify it), then one download per picture.  ScreenScraper needs a
  * developer login (devid/devpassword, issued by its forum to a software)
- * and, for more than a trickle, the user's own account:
- *
- *    vita.ini   ss_devid = ...   ss_devpass = ...
- *               ss_user  = ...   ss_pass    = ...      (the user's login)
+ * and, for more than a trickle, the user's own account.  The software's login
+ * is built in (make SS_DEVID=... SS_DEVPASS=...; vita.ini ss_devid / ss_devpass
+ * override it) and never shown; the user types their own in Settings >
+ * Library > ScreenScraper (kept in screenscraper.txt).
  *
  * Driven from the UI thread, a frame at a time: ss_start, then ss_pump
  * until it stops answering "working".  The HTTP is ra_http.c's thread. */
@@ -31,6 +31,11 @@ extern "C" {
 
 void ss_config(const char *devid, const char *devpass, const char *user,
                const char *pass);
+/* The user's own login: loaded from / saved to <root>/screenscraper.txt.
+ * ss_login_set with an empty user signs out (the file goes). */
+void ss_login_load(const char *root);
+int  ss_login_set(const char *root, const char *user, const char *pass);
+int  ss_login_name(char *out, size_t cap);     /* 1 = a user is set */
 /* 1 when a developer login is set (without it the server refuses). */
 int  ss_configured(void);
 /* Begin one game.  `root` = the data folder, `path` = the ROM's whole path,

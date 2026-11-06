@@ -1305,6 +1305,7 @@ static void read_switches(void)
       fe_ini_get(ini, "ss_user", us, sizeof(us));
       fe_ini_get(ini, "ss_pass", pw, sizeof(pw));
       ss_config(di, dp, us, pw);
+      ss_login_load(g_app_root);
    }
    g_sw.overlays = (int)fe_ini_get_int(ini, "overlays", 1) ? 1 : 0;
    g_sw.grid = (int)fe_ini_get_int(ini, "grid_strength", 5);

@@ -4,8 +4,10 @@
 
 - Scrape one game from ScreenScraper: TRIANGLE in the game list fetches the highlighted game's
   cover, title screen and video preview (videos/<name>.mp4) and replaces the libretro cover.
-  Needs `ss_devid` / `ss_devpass` (a ScreenScraper developer login) and optionally
-  `ss_user` / `ss_pass` in vita.ini. The automatic libretro covers stay the default.
+  The user types their own ScreenScraper account in Settings > Library > ScreenScraper
+  (kept in ux0:data/RetroAdhoc/screenscraper.txt). The software's own developer login is
+  built in at build time (`make SS_DEVID=... SS_DEVPASS=...`) and not shown; without it the
+  scrape says so. The automatic libretro covers stay the default.
   L / R switch consoles (TRIANGLE no longer does).
 
 - The bubble is now **Retro Adhoc** (TITLE_ID RADH00001, RetroAdhoc.vpk) with its own icon and LiveArea;

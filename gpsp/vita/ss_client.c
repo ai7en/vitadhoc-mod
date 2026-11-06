@@ -10,6 +10,18 @@
 
 #include "ra_http.h"
 
+#ifndef SS_DEVID
+#define SS_DEVID ""          /* the software's own login: make SS_DEVID=... */
+#endif
+#ifndef SS_DEVPASS
+#define SS_DEVPASS ""
+#endif
+#ifndef SS_DEVID
+#define SS_DEVID ""          /* the software's own login: make SS_DEVID=... */
+#endif
+#ifndef SS_DEVPASS
+#define SS_DEVPASS ""
+#endif
 #define SS_API   "https://api.screenscraper.fr/api2/jeuInfos.php"
 #define SS_SOFT  "RetroAdhoc"
 /* ScreenScraper's system ids, by fe_console_t: GBA 12, GB 9, GBC 10,
@@ -30,13 +42,66 @@ static struct
    char *json;                             /* the record, kept for the picks */
 } S;
 
+/* The user's own login lives in <root>/screenscraper.txt (two lines). */
+static void login_path(const char *root, char *out, size_t cap)
+{
+   snprintf(out, cap, "%s/screenscraper.txt", root);
+}
+
+void ss_login_load(const char *root)
+{
+   char path[600], a[48] = "", b[48] = "";
+   FILE *f;
+   login_path(root, path, sizeof(path));
+   f = fopen(path, "r");
+   if (!f)
+      return;
+   if (fgets(a, sizeof(a), f))
+      a[strcspn(a, "\r\n")] = '\0';
+   if (fgets(b, sizeof(b), f))
+      b[strcspn(b, "\r\n")] = '\0';
+   fclose(f);
+   snprintf(S.user, sizeof(S.user), "%s", a);
+   snprintf(S.pass, sizeof(S.pass), "%s", b);
+}
+
+int ss_login_set(const char *root, const char *user, const char *pass)
+{
+   char path[600];
+   FILE *f;
+   snprintf(S.user, sizeof(S.user), "%s", user ? user : "");
+   snprintf(S.pass, sizeof(S.pass), "%s", pass ? pass : "");
+   login_path(root, path, sizeof(path));
+   if (!S.user[0])
+   {
+      remove(path);
+      return 0;
+   }
+   f = fopen(path, "w");
+   if (!f)
+      return -1;
+   fprintf(f, "%s\n%s\n", S.user, S.pass);
+   return fclose(f) == 0 ? 0 : -1;
+}
+
+int ss_login_name(char *out, size_t cap)
+{
+   snprintf(out, cap, "%s", S.user);
+   return S.user[0] != '\0';
+}
+
 void ss_config(const char *devid, const char *devpass, const char *user,
                const char *pass)
 {
-   snprintf(S.devid, sizeof(S.devid), "%s", devid ? devid : "");
-   snprintf(S.devpass, sizeof(S.devpass), "%s", devpass ? devpass : "");
-   snprintf(S.user, sizeof(S.user), "%s", user ? user : "");
-   snprintf(S.pass, sizeof(S.pass), "%s", pass ? pass : "");
+   snprintf(S.devid, sizeof(S.devid), "%s",
+            devid && *devid ? devid : SS_DEVID);
+   snprintf(S.devpass, sizeof(S.devpass), "%s",
+            devpass && *devpass ? devpass : SS_DEVPASS);
+   if (user && *user)
+   {
+      snprintf(S.user, sizeof(S.user), "%s", user);
+      snprintf(S.pass, sizeof(S.pass), "%s", pass ? pass : "");
+   }
 }
 
 int ss_configured(void) { return S.devid[0] && S.devpass[0]; }

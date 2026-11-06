@@ -2330,7 +2330,7 @@ enum { SET_HDR_WL, SET_NAME, SET_CONN, SET_ROOM, SET_LINKMODE, SET_DELAY,
        /* The account and Hardcore in the browser; a running game's list
         * in game, when it has achievements (ra_vita.h). */
        SET_HDR_RA, SET_RA_ACCOUNT, SET_RA_HARDCORE, SET_RA_LIST,
-       SET_HDR_LIB, SET_FOLDERS, SET_SORT,
+       SET_HDR_LIB, SET_FOLDERS, SET_SORT, SET_SS,
        SET_HDR_THIS, SET_OWN_LOOK, SET_MOTION, SET_SENS, SET_REVERSE,
        SET_LEVEL, SET_SUN,
        SET_HDR_CTL, SET_CONTROLS,
@@ -2454,6 +2454,7 @@ static const struct { unsigned char header; const char *label; } set_rows[SET_CO
     * the top past Button mapping: it keeps that place. */
    { 0, "Game folders" },
    { 0, "Game order" },
+   { 0, "ScreenScraper" },
    /* The running game's own (config_psp.h pcfg_game): its look, and the
     * sensor rows of a sensor cartridge (fe_sensor.h). */
    { 1, "THIS GAME" },
@@ -2489,7 +2490,8 @@ static int linkmode_row_enabled(void);
 static int set_row_shown(int idx)
 {
 #ifdef VITA
-   if (idx == SET_HDR_LIB || idx == SET_SORT || idx == SET_FOLDERS)
+   if (idx == SET_HDR_LIB || idx == SET_SORT || idx == SET_FOLDERS ||
+       idx == SET_SS)
       return g_ov_browse;
    if (idx == SET_RA_ACCOUNT || idx == SET_RA_HARDCORE)
       return g_ov_browse;
@@ -3143,6 +3145,7 @@ static void settings_adjust(int id, int dir)
       /* not values: X acts (screen_settings) */
       return;
    case SET_FOLDERS:
+   case SET_SS:
       /* not a value: X opens the keyboard (screen_settings) */
       return;
    case SET_SORT:
@@ -3532,6 +3535,7 @@ static const char *set_help(int id)
    case SET_RA_LIST:  return "This game's achievements and what each asks.";
    case SET_SORT:     return "The order of All games and Starred. Recent is "
                              "newest first.";
+   case SET_SS:       return "Your screenscraper.fr account, for scraping a game (TRIANGLE in the list).";
    case SET_FOLDERS:  return "X: type a folder to add it (ux0:ROMS/GBA), or "
                              "one listed to remove it.";
    case SET_OWN_LOOK: return g_pgame.override
@@ -3634,6 +3638,63 @@ static int ra_settings_typed(void)
 }
 #endif
 
+#ifdef VITA
+/* LIBRARY > ScreenScraper: X asks for the name, then the password; with a
+ * user set, X twice within three seconds signs out. */
+static char g_ss_typed_user[48];
+static unsigned g_ss_out_armed;
+
+static void ss_settings_account(void)
+{
+   char nm[48];
+   if (ss_login_name(nm, sizeof(nm)))
+   {
+      unsigned now = pspcompat_time_us();
+      if (g_ss_out_armed && now - g_ss_out_armed < 3000000u)
+      {
+         g_ss_out_armed = 0;
+         ss_login_set(PSPCOMPAT_ROOT_VITA, "", "");
+         osd_toast("Signed out of ScreenScraper");
+      }
+      else
+      {
+         g_ss_out_armed = now ? now : 1;
+         osd_toast("Press X again to sign out of ScreenScraper");
+      }
+      return;
+   }
+   if (ui_text_open(TXT_SS_USER, "ScreenScraper user name", g_ss_typed_user,
+                    40) != 0)
+      osd_toast("The keyboard is not available");
+}
+
+static int ss_settings_typed(void)
+{
+   const char *typed;
+   int r = ui_text_take(TXT_SS_USER, &typed);
+   if (r)
+   {
+      if (r > 0 && typed[0])
+      {
+         snprintf(g_ss_typed_user, sizeof(g_ss_typed_user), "%.40s", typed);
+         if (ui_text_open_secret(TXT_SS_PASS, "ScreenScraper password",
+                                 PC_IME_MAX_CHARS) != 0)
+            osd_toast("The keyboard is not available");
+      }
+      return 1;
+   }
+   r = ui_text_take(TXT_SS_PASS, &typed);
+   if (!r)
+      return 0;
+   if (r > 0 && typed[0])
+      osd_toast(ss_login_set(PSPCOMPAT_ROOT_VITA, g_ss_typed_user, typed) == 0
+                ? "ScreenScraper account saved"
+                : "The account could not be saved");
+   ui_text_wipe();
+   return 1;
+}
+#endif
+
 static ui_action screen_settings(unsigned edges)
 {
    int i;
@@ -3644,6 +3705,7 @@ static ui_action screen_settings(unsigned edges)
    {
       const char *typed;
       (void)ra_settings_typed();
+      (void)ss_settings_typed();
       if (ui_text_take(TXT_SHOTDIR, &typed) > 0)
          osd_toast(ui_host_shot_dir_set(typed) == 0
                    ? (typed[0] ? "Screenshots go there now"
@@ -3717,6 +3779,11 @@ static ui_action screen_settings(unsigned edges)
          if (ui_text_open(TXT_FOLDER, "Game folder to add or remove",
                           "ux0:", 63) != 0)
             osd_toast("The keyboard is not available");
+         edges &= ~PSP_CTRL_CROSS;
+      }
+      if ((edges & PSP_CTRL_CROSS) && g_cursor == SET_SS)
+      {
+         ss_settings_account();
          edges &= ~PSP_CTRL_CROSS;
       }
       if ((edges & PSP_CTRL_CROSS) && g_cursor == SET_RA_ACCOUNT)
@@ -4106,6 +4173,13 @@ static ui_action screen_settings(unsigned edges)
          ra_summary(&have, &total, NULL, NULL, NULL);
          snprintf(v, sizeof(v), "%u of %u", have, total);
          set_item(y, g_cursor == i, 1, set_rows[i].label, v);
+         break;
+      }
+      case SET_SS:
+      {
+         char nm[48];
+         set_item(y, g_cursor == i, 1, set_rows[i].label,
+                  ss_login_name(nm, sizeof(nm)) ? nm : "sign in");
          break;
       }
       case SET_FOLDERS:
@@ -12003,7 +12077,7 @@ int ui_browser(const char *rom_dir, char *out, size_t out_sz,
          {
             char full[512];
             if (!ss_configured())
-               osd_toast("Set ss_devid and ss_devpass in vita.ini first");
+               osd_toast("ScreenScraper is not set up in this build");
             else if (psp_rom_path_join(full, sizeof(full), rom_dir,
                                        g_roms[rom].name) != 0 ||
                      ss_start(PSPCOMPAT_ROOT_VITA, full, g_roms[rom].base,
