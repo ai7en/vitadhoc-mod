@@ -79,6 +79,10 @@ int  artfetch_take(char *name, size_t cap);
  * the next call returns 0 unless another overflow occurs. UI thread only. */
 int  artfetch_resync(void);
 
+/* A picture was replaced behind the thread's back (ss_client.h): the UI
+ * drops every cached cover once (artfetch_resync answers 1).  Any thread. */
+void artfetch_invalidate(void);
+
 /* Each cover also gets boxart/<stem>.t2.565: the picture fitted into this box
  * (never enlarged) as RGB565, which is all a home-screen tile reads. */
 #define ART_THUMB_W 160

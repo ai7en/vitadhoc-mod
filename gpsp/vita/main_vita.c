@@ -105,6 +105,7 @@
 #include "menu_diag.h"
 #include "gamedb.h"
 #include "artfetch.h"
+#include "ss_client.h"
 #include "ra_vita.h"
 #include "net_vita.h"
 #include "../wide.h"
@@ -1296,6 +1297,15 @@ static void read_switches(void)
    if (!fe_ini_get(ini, "art_url", g_sw.art_url, sizeof(g_sw.art_url)))
       g_sw.art_url[0] = '\0';
    g_sw.art_titles      = (int)fe_ini_get_int(ini, "art_titles", 1) ? 1 : 0;
+   {
+      /* ScreenScraper (ss_client.h): developer login, then the user's own */
+      char di[48] = "", dp[48] = "", us[48] = "", pw[48] = "";
+      fe_ini_get(ini, "ss_devid", di, sizeof(di));
+      fe_ini_get(ini, "ss_devpass", dp, sizeof(dp));
+      fe_ini_get(ini, "ss_user", us, sizeof(us));
+      fe_ini_get(ini, "ss_pass", pw, sizeof(pw));
+      ss_config(di, dp, us, pw);
+   }
    g_sw.overlays = (int)fe_ini_get_int(ini, "overlays", 1) ? 1 : 0;
    g_sw.grid = (int)fe_ini_get_int(ini, "grid_strength", 5);
    if (g_sw.grid < 1 || g_sw.grid > 10)

@@ -28,6 +28,7 @@
 
 #define RA_HTTP_RETRY      (-2)
 #define RA_HTTP_MAX_BODY   (4u * 1024u * 1024u)
+#define RA_HTTP_MAX_FILE   (48u * 1024u * 1024u)
 
 typedef struct ra_http_res
 {
@@ -47,6 +48,11 @@ int  ra_http_submit(const char *url, const char *post, const char *type);
  * frame's work).  Same slot, same contract; the answer's status is 0 and
  * `note` the 32 hex digits, or -1 when the file could not be read. */
 int  ra_http_hash_file(const char *path);
+/* A third job: https://url streamed into the file `path` (written as
+ * path.tmp, renamed when whole; a video is more than RA_HTTP_MAX_BODY).
+ * Same slot, same contract; the answer's status is the HTTP status, with no
+ * body (200 = the file is there).  Vita only: plain http is refused. */
+int  ra_http_download(const char *url, const char *path);
 /* 1 = an answer, moved into *res; 0 = none (yet). */
 int  ra_http_take(ra_http_res *res);
 /* 1 = nothing in flight and nothing waiting to be taken. */

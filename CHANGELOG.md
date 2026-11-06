@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+- Scrape one game from ScreenScraper: TRIANGLE in the game list fetches the highlighted game's
+  cover, title screen and video preview (videos/<name>.mp4) and replaces the libretro cover.
+  Needs `ss_devid` / `ss_devpass` (a ScreenScraper developer login) and optionally
+  `ss_user` / `ss_pass` in vita.ini. The automatic libretro covers stay the default.
+  L / R switch consoles (TRIANGLE no longer does).
+
 - The bubble is now **Retro Adhoc** (TITLE_ID RADH00001, RetroAdhoc.vpk) with its own icon and LiveArea;
   it installs beside the original VitAdhoc and has its own data folder, `ux0:data/RetroAdhoc`
   (settings, saves, shader cache), so nothing conflicts with VitAdhoc's `ux0:data/GBAdhoc`.

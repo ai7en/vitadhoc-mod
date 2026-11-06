@@ -79,6 +79,9 @@
 #include "fe_gblink.h"      /* FE_GBLINK_FL_*: Fast link, as a session runs it */
 #ifdef VITA
 #include "artfetch.h"        /* Settings > Covers */
+#ifdef VITA
+#include "ss_client.h"       /* TRIANGLE: scrape the highlighted game */
+#endif
 #endif
 #ifdef GPSP_CHEATS
 #include "fe_cheats.h"
@@ -11969,7 +11972,50 @@ int ui_browser(const char *rom_dir, char *out, size_t out_sz,
        * the rescan now if the peak has not passed -- and starts the next
        * from the console it landed on.  The state shelf is keyed by list
        * index, so no switch starts while it is open. */
-      int sw_dir = (edges & PSP_CTRL_TRIANGLE) ? 1 : 0;
+#ifdef VITA
+      /* TRIANGLE: scrape the highlighted game from ScreenScraper (cover,
+       * title screen, video).  The consoles switch with L / R. */
+      {
+         static char last[160];
+         char m[160];
+         int got = 0, r;
+         if (ss_busy())
+         {
+            r = ss_pump(m, sizeof(m), &got);
+            if (r != SS_IDLE && (r != SS_WORKING || strcmp(m, last)))
+            {
+               osd_toast("%s", m);
+               snprintf(last, sizeof(last), "%s", m);
+            }
+            if (r == SS_DONE || r == SS_FAILED)
+            {
+               fe_evt("ss_scrape result=%d got=%d msg=%s", r, got, m);
+               last[0] = '\0';
+               if (got)
+               {
+                  artfetch_retry();       /* tile thumbnails are made again */
+                  artfetch_invalidate();  /* and every cached cover dropped */
+               }
+            }
+         }
+         else if ((edges & PSP_CTRL_TRIANGLE) && n > 0 &&
+                  !g_browser_state_open && !g_sw.active)
+         {
+            char full[512];
+            if (!ss_configured())
+               osd_toast("Set ss_devid and ss_devpass in vita.ini first");
+            else if (psp_rom_path_join(full, sizeof(full), rom_dir,
+                                       g_roms[rom].name) != 0 ||
+                     ss_start(PSPCOMPAT_ROOT_VITA, full, g_roms[rom].base,
+                              g_pcfg.console) != 0)
+               osd_toast("ScreenScraper: could not start");
+            else
+               osd_toast("Looking the game up...");
+            edges &= ~PSP_CTRL_TRIANGLE;
+         }
+      }
+#endif
+      int sw_dir = 0;
 #ifdef VITA
       /* Vita: L / R step to the previous / next console. */
       if (!sw_dir && !find_owns_input)

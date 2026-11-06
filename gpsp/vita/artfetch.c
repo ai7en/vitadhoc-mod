@@ -109,6 +109,11 @@ int artfetch_take(char *name, size_t cap)
    return 1;
 }
 
+void artfetch_invalidate(void)
+{
+   A_STORE(g_done_lost, 1);
+}
+
 int artfetch_resync(void)
 {
    return __atomic_exchange_n(&g_done_lost, 0, __ATOMIC_SEQ_CST);

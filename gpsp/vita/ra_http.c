@@ -40,6 +40,7 @@ static struct
    ra_http_res res;              /* the answer (owned while DONE)    */
    char   agent[192];
    int  (*online)(void);
+   char  *dl;                    /* the job is a download into this file */
 } H = { 0, 0, 0, NULL, NULL, NULL, 0, { 0, NULL, 0, "" }, "VitAdhoc", NULL };
 
 void ra_http_config(const char *user_agent, int (*online)(void))
@@ -371,6 +372,53 @@ static void http_tls(void)
    }
    if (sceHttpGetResponseContentLength(req, &want) < 0)
       want = (unsigned long long)-1;   /* chunked: the library's to join */
+   if (H.dl)
+   {
+      /* A file: streamed to <path>.tmp, renamed when whole (status 200 only). */
+      static char chunk[16384];
+      char tmp[512];
+      FILE *df;
+      snprintf(tmp, sizeof(tmp), "%s.tmp", H.dl);
+      df = status == 200 ? fopen(tmp, "wb") : NULL;
+      for (;;)
+      {
+         rc = sceHttpReadData(req, chunk, sizeof(chunk));
+         if (rc < 0 || A_LOAD(H.quit))
+            break;
+         if (rc == 0)
+            break;
+         got += (size_t)rc;
+         if (df && (got > RA_HTTP_MAX_FILE ||
+                    fwrite(chunk, 1, (size_t)rc, df) != (size_t)rc))
+         {
+            fclose(df);
+            df = NULL;
+            remove(tmp);
+            rc = -1;
+            break;
+         }
+      }
+      if (df)
+      {
+         int ok = rc == 0 && fclose(df) == 0 &&
+                  (want == (unsigned long long)-1 || got >= want);
+         if (!ok || rename(tmp, H.dl) != 0)
+         {
+            remove(tmp);
+            fail(RA_HTTP_RETRY, rc < 0 ? "read" : "cut short");
+            goto out;
+         }
+      }
+      else if (status == 200)
+      {
+         fail(RA_HTTP_RETRY, "file");
+         goto out;
+      }
+      H.res.status = status;
+      H.res.len = got;
+      snprintf(H.res.note, sizeof(H.res.note), "file %u bytes", (unsigned)got);
+      goto out;
+   }
    for (;;)
    {
       if (A_LOAD(H.quit) || body_room(&cap, got + 8192))
@@ -452,6 +500,8 @@ static void serve(void)
    H.res.note[0] = '\0';
    if (H.hash)
       hash_file();
+   else if (H.dl && strncmp(H.url, "https://", 8))
+      fail(-1, "downloads need https");
    else if (H.online && !H.online())
       fail(RA_HTTP_RETRY, "offline");
    else if (!strncmp(H.url, "http://", 7))
@@ -491,14 +541,48 @@ static void thread_main(void *arg)
 
 static int submit(const char *url, const char *post, const char *type,
                   int hash);
+static int g_dl_pending;       /* submit() hands this to the job: a path */
 
 int ra_http_submit(const char *url, const char *post, const char *type)
 {
+   if (A_LOAD(H.state) == ST_EMPTY && H.dl)
+   {
+      free(H.dl);
+      H.dl = NULL;
+   }
    return submit(url, post, type, 0);
+}
+
+int ra_http_download(const char *url, const char *path)
+{
+   char *copy;
+   int rc;
+   if (!path || !*path)
+      return -1;
+   if (A_LOAD(H.state) != ST_EMPTY)
+      return -1;
+   copy = strdup(path);
+   if (!copy)
+      return -1;
+   free(H.dl);
+   H.dl = copy;
+   rc = submit(url, NULL, NULL, 0);
+   if (rc != 0)
+   {
+      free(H.dl);
+      H.dl = NULL;
+   }
+   (void)g_dl_pending;
+   return rc;
 }
 
 int ra_http_hash_file(const char *path)
 {
+   if (A_LOAD(H.state) == ST_EMPTY && H.dl)
+   {
+      free(H.dl);
+      H.dl = NULL;
+   }
    return submit(path, NULL, NULL, 1);
 }
 
