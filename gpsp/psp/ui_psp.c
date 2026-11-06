@@ -11738,6 +11738,53 @@ static void browser_switch_apply(const char *rom_dir, int *n_scan, int *n,
  * it runs (it has half a dozen ways out). */
 static int ui_browser_run(const char *rom_dir, char *out, size_t out_sz,
                           int *out_state_slot, fe_console_t *console_out);
+#ifdef VITA
+/* The ScreenScraper chooser (TRIANGLE in the game list): mode 1 asks how, 2
+ * lists the games a name search found. */
+#define SSP_VISIBLE 7
+static struct
+{
+   int  mode, cur, top, console;
+   char path[512], base[256];
+} g_ssp;
+
+static void ssp_draw(void)
+{
+   const int x = 40, w = VID_SCR_W - 80, row = 22;
+   const ss_hit *hits = NULL;
+   int nh = ss_hits(&hits), rows, i, y, h;
+   if (!g_ssp.mode)
+      return;
+   rows = g_ssp.mode == 1 ? 2 : (nh < SSP_VISIBLE ? nh : SSP_VISIBLE);
+   h = 40 + rows * row + 22;
+   y = (VID_SCR_H - h) / 2;
+   vid_rect(0, 0, VID_SCR_W, VID_SCR_H, 0x0000, 140);
+   vid_rect(x, y, w, h, C_BG_TOP, 245);
+   vid_rect(x, y, w, 2, C_ACCENT, 255);
+   vid_text(x + 12, y + 10, g_ssp.mode == 1 ? "ScreenScraper" : "Pick the game",
+            C_ITEM);
+   for (i = 0; i < rows; i++)
+   {
+      char t[100];
+      int idx = g_ssp.mode == 1 ? i : g_ssp.top + i;
+      int sel = idx == g_ssp.cur, ty = y + 36 + i * row;
+      if (sel)
+         vid_rect(x + 6, ty - 2, w - 12, row, C_ACCENT, 70);
+      if (g_ssp.mode == 1)
+         snprintf(t, sizeof(t), "%s",
+                  i == 0 ? "Match by the file (automatic)"
+                         : "Search by name...");
+      else
+         snprintf(t, sizeof(t), "%s", hits[idx].name);
+      clip_title(t, w - 36);
+      vid_text(x + 16, ty, t, sel ? C_SEL : C_ITEM);
+   }
+   vid_text(x + 12, y + h - 20,
+            g_ssp.mode == 2 ? "X Choose    O Back" : "X Select    O Back",
+            C_DIM);
+}
+#endif
+
 int ui_browser(const char *rom_dir, char *out, size_t out_sz,
                int *out_state_slot, fe_console_t *console_out)
 {
@@ -12047,8 +12094,9 @@ int ui_browser(const char *rom_dir, char *out, size_t out_sz,
        * from the console it landed on.  The state shelf is keyed by list
        * index, so no switch starts while it is open. */
 #ifdef VITA
-      /* TRIANGLE: scrape the highlighted game from ScreenScraper (cover,
-       * title screen, video).  The consoles switch with L / R. */
+      /* TRIANGLE: scrape the highlighted game from ScreenScraper.  A small
+       * chooser: match by the file, or search by name and pick the game.
+       * The consoles switch with L / R. */
       {
          static char last[160];
          char m[160];
@@ -12061,9 +12109,15 @@ int ui_browser(const char *rom_dir, char *out, size_t out_sz,
                osd_toast("%s", m);
                snprintf(last, sizeof(last), "%s", m);
             }
-            if (r == SS_DONE || r == SS_FAILED)
+            if (r == SS_FOUND)
             {
-               fe_evt("ss_scrape result=%d got=%d msg=%s", r, got, m);
+               g_ssp.mode = 2;
+               g_ssp.cur = g_ssp.top = 0;
+            }
+            else if (r == SS_DONE || r == SS_FAILED)
+            {
+               fe_evt("ss_scrape result=%d got=%d msg=%s %s", r, got, m,
+                      ss_detail());
                last[0] = '\0';
                if (got)
                {
@@ -12072,20 +12126,100 @@ int ui_browser(const char *rom_dir, char *out, size_t out_sz,
                }
             }
          }
-         else if ((edges & PSP_CTRL_TRIANGLE) && n > 0 &&
+         else if (g_ssp.mode == 0 && (edges & PSP_CTRL_TRIANGLE) && n > 0 &&
                   !g_browser_state_open && !g_sw.active)
          {
-            char full[512];
+            const int sr = view_rom(cur);
             if (!ss_configured())
                osd_toast("ScreenScraper is not set up in this build");
-            else if (psp_rom_path_join(full, sizeof(full), rom_dir,
-                                       g_roms[rom].name) != 0 ||
-                     ss_start(PSPCOMPAT_ROOT_VITA, full, g_roms[rom].base,
-                              g_pcfg.console) != 0)
-               osd_toast("ScreenScraper: could not start");
+            else if (sr >= 0 && psp_rom_path_join(g_ssp.path,
+                        sizeof(g_ssp.path), rom_dir, g_roms[sr].name) == 0)
+            {
+               snprintf(g_ssp.base, sizeof(g_ssp.base), "%s", g_roms[sr].base);
+               g_ssp.console = g_pcfg.console;
+               g_ssp.mode = 1;
+               g_ssp.cur = 0;
+            }
             else
-               osd_toast("Looking the game up...");
+               osd_toast("ScreenScraper: could not start");
             edges &= ~PSP_CTRL_TRIANGLE;
+         }
+         if (g_ssp.mode && !ss_busy())
+         {
+            const char *typed;
+            const ss_hit *hits;
+            int nh = ss_hits(&hits);
+            if (ui_text_take(TXT_SS_QUERY, &typed) != 0 && typed)
+            {
+               if (typed[0] && ss_search(PSPCOMPAT_ROOT_VITA, g_ssp.path,
+                                         g_ssp.base, g_ssp.console,
+                                         typed) == 0)
+               {
+                  g_ssp.mode = 0;
+                  osd_toast("Searching ScreenScraper...");
+               }
+               else
+                  g_ssp.mode = typed[0] ? 0 : 1;
+            }
+            else if (!find_owns_input)
+            {
+               const int rows = g_ssp.mode == 1 ? 2 : nh;
+               if (edges & PSP_CTRL_UP)
+                  g_ssp.cur = (g_ssp.cur + rows - 1) % (rows ? rows : 1);
+               if (edges & PSP_CTRL_DOWN)
+                  g_ssp.cur = (g_ssp.cur + 1) % (rows ? rows : 1);
+               if (g_ssp.cur < g_ssp.top)
+                  g_ssp.top = g_ssp.cur;
+               if (g_ssp.cur >= g_ssp.top + SSP_VISIBLE)
+                  g_ssp.top = g_ssp.cur - SSP_VISIBLE + 1;
+               if (edges & PSP_CTRL_CIRCLE)
+                  g_ssp.mode = 0;
+               else if ((edges & PSP_CTRL_CROSS) && g_ssp.mode == 1)
+               {
+                  if (g_ssp.cur == 0)
+                  {
+                     g_ssp.mode = 0;
+                     if (ss_start(PSPCOMPAT_ROOT_VITA, g_ssp.path, g_ssp.base,
+                                  g_ssp.console) == 0)
+                        osd_toast("Looking the game up...");
+                     else
+                        osd_toast("ScreenScraper: could not start");
+                  }
+                  else
+                  {
+                     char q[64];
+                     int k = 0;
+                     /* the file's name without its tags: "Aladdin (U) [!]" */
+                     for (; g_ssp.base[k] && g_ssp.base[k] != '(' &&
+                            g_ssp.base[k] != '[' && k < 60; k++)
+                        q[k] = g_ssp.base[k];
+                     while (k > 0 && (q[k - 1] == ' ' || q[k - 1] == '_'))
+                        k--;
+                     q[k] = '\0';
+                     if (strlen(q) > 4 && !strcmp(q + strlen(q) - 4, ".gba"))
+                        q[strlen(q) - 4] = '\0';
+                     if (ui_text_open(TXT_SS_QUERY, "Search ScreenScraper",
+                                      q, 60) != 0)
+                        osd_toast("The keyboard is not available");
+                  }
+               }
+               else if ((edges & PSP_CTRL_CROSS) && g_ssp.mode == 2 && nh > 0)
+               {
+                  g_ssp.mode = 0;
+                  if (ss_pick(g_ssp.cur) == 0)
+                     osd_toast("Looking the game up...");
+                  else
+                     osd_toast("ScreenScraper: could not start");
+               }
+            }
+            if (g_ssp.mode && !find_owns_input)
+            {
+               pd.Buttons = edges = 0;     /* the chooser keeps every key */
+               g_prev_pad = 0xFFFFFFFFu;
+               tch_reset();
+               g_tch.down = g_tch.dead = 1;
+               idle = 0;
+            }
          }
       }
 #endif
@@ -12687,6 +12821,9 @@ int ui_browser(const char *rom_dir, char *out, size_t out_sz,
       if (!g_ui_home)
 #endif
       browser_state_panel(rom_dir, rom, n);
+#ifdef VITA
+      ssp_draw();
+#endif
       switch_draw();
       ret_fade_layer();
 

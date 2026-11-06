@@ -419,6 +419,11 @@ int vb_prog_probe(int n, char *out, size_t outlen)
    return 0;
 }
 
+void vb_prog_fold(int which, const float uni[VB_PROG_UNIFORMS][4])
+{
+   (void)which; (void)uni;     /* the host twin stays general */
+}
+
 const char *vb_prog_status(int which)
 {
    if (which < 0 || which >= VB_PROGS)

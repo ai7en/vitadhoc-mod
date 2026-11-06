@@ -68,6 +68,7 @@ typedef char vv_scale_is_two[(VV_S * VID_SCR_W == VB_W &&
 static int g_inited;
 static int g_scale  = VID_SCALE_INT3;
 static int g_filter = VID_FILTER_NEAREST;
+static void fx_prefold(void);     /* below: the fx program's constants */
 static int g_requested_filter = VID_FILTER_NEAREST;
 static int g_quality;
 /* The smoothing the TRIANGLE presets use: the last non-nearest filter
@@ -180,6 +181,7 @@ void vid_set_mode(int scale, int filter)
     * same size through sharp bilinear instead of nearest's uneven 3- and
     * 4-pixel columns, which shimmer as the picture scrolls. */
    g_filter = g_quality == 1 ? VID_FILTER_SHARP : g_requested_filter;
+   fx_prefold();
    if (g_quality != 1 && g_filter != VID_FILTER_NEAREST)
       g_smooth = g_filter;
 }
@@ -276,6 +278,7 @@ const char *vid_cycle_preset(void)
    i = (i + 1) % 5;
    g_scale  = preset[i].s;
    g_filter = preset[i].f ? g_smooth : VID_FILTER_NEAREST;
+   fx_prefold();
    /* ...and it is the filter asked for now: a later vid_set_quality (the
     * Colours or Wide rows re-apply the look) must not bring back the one
     * from before the preset, which Settings and the profile no longer
@@ -1383,6 +1386,8 @@ void vid_set_gpu_time(int on)
 }
 
 /* After each present (vid_swap). */
+static int g_base;             /* after an fx is switched off: 1 wait, 2 sampling */
+
 static void gx_guard(void)
 {
    unsigned n, avg, mx;
@@ -1397,6 +1402,23 @@ static void gx_guard(void)
          if (mx > g_gx_max)
             g_gx_max = mx;
          g_gx_samples++;
+      }
+      return;
+   }
+   if (g_base)
+   {
+      /* what the same frame costs without the fx, as the yardstick */
+      if (g_base == 1 && g_gx_frames - g_gx_mark >= 30)
+      {
+         vb_gpu_time(8);
+         g_base = 2;
+      }
+      else if (g_base == 2 && vb_gpu_timing() <= 0)
+      {
+         vb_gpu_stats(&n, &avg, &mx);
+         fe_evt("gpu_fx_base filter=%s frames=%u gpu_us=%u/%u",
+                vid_filter_name(g_filter), n, avg, mx);
+         g_base = 0;
       }
       return;
    }
@@ -1419,7 +1441,9 @@ static void gx_guard(void)
       if (g_gx_slow >= 2)
       {
          *st = -2;
-         fe_evt("gpu_%s off reason=slow gpu_us=%u", kind, avg);
+         fe_evt("gpu_%s off reason=slow gpu_us=%u filter=%s", kind, avg,
+                vid_filter_name(g_filter));
+         g_base = 1;
       }
       return;
    }
@@ -1632,20 +1656,11 @@ int vid_gpu_fx(void)
           g_fx_kind[g_filter <= VID_FILTER_LCD_WORN ? 0 : 1] > 0;
 }
 
-static int fx_draw(vb_tex *t, unsigned w, unsigned h, const vid_geo *g)
+/* The preset's own uniforms (U1 sharpness..brightness, U2..U4): the same for
+ * every frame of a filter, so vb_prog_fold can bake U2..U4 into the shader. */
+static void fx_consts(int f, float u[VB_PROG_UNIFORMS][4])
 {
-   float u[VB_PROG_UNIFORMS][4];
-   vb_tquad q;
-   const int f = g_filter;
    const int lcd = f <= VID_FILTER_LCD_WORN;
-   vb_prog *p = vb_prog_get(lcd ? VB_PROG_FX_LCD : VB_PROG_FX_CRT);
-   if (!p || !w || !h || g->sh <= 0)
-      return 0;
-   memset(u, 0, sizeof(u));
-   u[0][0] = (float)w; u[0][1] = (float)g->sh;
-   u[0][2] = (float)g->dw; u[0][3] = (float)g->dh;
-   u[1][0] = (float)(g_frame_no % 153600u);     /* frames, wrapped */
-   u[5][0] = (float)vb_tex_w(t); u[5][1] = (float)h; u[5][2] = (float)g->sy0;
    if (lcd)
    {
       /* U1 sharpness, saturation, brightness | U2 contrast, grid mode (auto),
@@ -1686,6 +1701,51 @@ static int fx_draw(vb_tex *t, unsigned w, unsigned h, const vid_geo *g)
          u[1][1] = 1.0f; u[1][2] = 0.95f; u[1][3] = 1.6f;
          u[2][2] = 0.3f; u[2][3] = 0.25f;
          u[3][0] = 2.0f; u[3][1] = 0.12f; u[3][2] = 0.4f;
+      }
+   }
+}
+
+/* Between frames: specialise the fx program of the chosen filter. */
+static void fx_prefold(void)
+{
+   float u[VB_PROG_UNIFORMS][4];
+   if (!fx_filter(g_filter))
+      return;
+   memset(u, 0, sizeof(u));
+   fx_consts(g_filter, u);
+   vb_prog_fold(g_filter <= VID_FILTER_LCD_WORN ? VB_PROG_FX_LCD
+                                               : VB_PROG_FX_CRT, u);
+}
+
+static int fx_draw(vb_tex *t, unsigned w, unsigned h, const vid_geo *g)
+{
+   float u[VB_PROG_UNIFORMS][4];
+   vb_tquad q;
+   const int f = g_filter;
+   const int lcd = f <= VID_FILTER_LCD_WORN;
+   vb_prog *p = vb_prog_get(lcd ? VB_PROG_FX_LCD : VB_PROG_FX_CRT);
+   if (!p || !w || !h || g->sh <= 0)
+      return 0;
+   memset(u, 0, sizeof(u));
+   u[0][0] = (float)w; u[0][1] = (float)g->sh;
+   u[0][2] = (float)g->dw; u[0][3] = (float)g->dh;
+   u[1][0] = (float)(g_frame_no % 153600u);     /* frames, wrapped */
+   u[5][0] = (float)vb_tex_w(t); u[5][1] = (float)h; u[5][2] = (float)g->sy0;
+   {
+      float k[VB_PROG_UNIFORMS][4];
+      int i;
+      memset(k, 0, sizeof(k));
+      fx_consts(f, k);
+      for (i = 1; i < 5; i++)
+      {
+         if (i == 1)
+         {
+            u[1][1] = k[1][1]; u[1][2] = k[1][2]; u[1][3] = k[1][3];
+         }
+         else
+         {
+            memcpy(u[i], k[i], sizeof(u[i]));
+         }
       }
    }
    backdrop_draw(geo_covers(g));

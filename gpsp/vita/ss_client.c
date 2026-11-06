@@ -23,12 +23,13 @@
 #define SS_DEVPASS ""
 #endif
 #define SS_API   "https://api.screenscraper.fr/api2/jeuInfos.php"
+#define SS_API_SEARCH "https://api.screenscraper.fr/api2/jeuRecherche.php"
 #define SS_SOFT  "RetroAdhoc"
 /* ScreenScraper's system ids, by fe_console_t: GBA 12, GB 9, GBC 10,
  * Mega Drive 1, NES 3, SNES 4. */
 static const int SS_SYSTEM[6] = { 12, 9, 10, 1, 3, 4 };
 
-enum { ST_IDLE = 0, ST_HASH, ST_INFO, ST_NEXT, ST_DL };
+enum { ST_IDLE = 0, ST_HASH, ST_INFO, ST_NEXT, ST_DL, ST_SEARCH };
 enum { K_BOX = 0, K_TITLE, K_VIDEO, K_N };
 
 static struct
@@ -39,6 +40,10 @@ static struct
    char root[512], path[600], name[256], stem[256], md5[40];
    char url[K_N][700], fmt[K_N][8];
    char note[160];
+   char detail[96];                        /* the last HTTP answer's own note, for the log */
+   char gameid[16];                        /* a game picked from a search, or "" */
+   ss_hit hits[SS_HITS_MAX];
+   int  nhits;
    char *json;                             /* the record, kept for the picks */
 } S;
 
@@ -246,6 +251,8 @@ int ss_start(const char *root, const char *path, const char *name,
    memset(S.fmt, 0, sizeof(S.fmt));
    S.got = 0;
    S.result = 0;
+   S.nhits = 0;
+   S.gameid[0] = '\0';
    S.console = console;
    snprintf(S.root, sizeof(S.root), "%s", root);
    snprintf(S.path, sizeof(S.path), "%s", path);
@@ -258,6 +265,170 @@ int ss_start(const char *root, const char *path, const char *name,
    if (ra_http_hash_file(path) != 0)
       return -1;
    S.state = ST_HASH;
+   snprintf(S.note, sizeof(S.note), "Looking the game up...");
+   return 0;
+}
+
+static int submit_info(void);
+
+/* ---- search ----------------------------------------------------------------- */
+
+/* The end of the {...} or [...] that starts at `o` (strings skipped); NULL if
+ * it never closes. */
+static const char *skip_nested(const char *o)
+{
+   int depth = 0, in = 0;
+   for (; *o; o++)
+   {
+      if (in)
+      {
+         if (*o == '\\' && o[1])
+            o++;
+         else if (*o == '"')
+            in = 0;
+         continue;
+      }
+      if (*o == '"')
+         in = 1;
+      else if (*o == '{' || *o == '[')
+         depth++;
+      else if ((*o == '}' || *o == ']') && --depth == 0)
+         return o;
+   }
+   return NULL;
+}
+
+int ss_parse_search(const char *json, ss_hit *out, int max)
+{
+   static const char *const REG[] = { "us", "wor", "eu", "ss", "jp", NULL };
+   const char *a = strstr(json, "\"jeux\"");
+   int n = 0;
+   if (!a || !(a = strchr(a, '[')))
+      return 0;
+   for (a++; *a && *a != ']' && n < max;)
+   {
+      const char *o = strchr(a, '{'), *e, *nm;
+      ss_hit h;
+      int best = 99;
+      if (!o)
+         break;
+      e = skip_nested(o);
+      if (!e)
+         break;
+      a = e + 1;
+      memset(&h, 0, sizeof(h));
+      /* "id" is the object's own first key, before "noms" */
+      nm = strstr(o, "\"noms\"");
+      if (!jstr(o, nm && nm < e ? nm : e, "id", h.id, sizeof(h.id)) || !h.id[0])
+         continue;
+      if (nm && nm < e && (nm = strchr(nm, '[')))
+      {
+         const char *ne = skip_nested(nm), *q = nm + 1;
+         while (ne && q < ne)
+         {
+            const char *no = strchr(q, '{'), *nn;
+            char r[16], t[96];
+            int rank, i;
+            if (!no || no >= ne)
+               break;
+            nn = skip_nested(no);
+            if (!nn)
+               break;
+            q = nn + 1;
+            if (!jstr(no, nn, "text", t, sizeof(t)))
+               continue;
+            if (!jstr(no, nn, "region", r, sizeof(r)))
+               r[0] = '\0';
+            rank = 50;
+            for (i = 0; REG[i]; i++)
+               if (!strcmp(r, REG[i]))
+               {
+                  rank = i;
+                  break;
+               }
+            if (rank < best)
+            {
+               best = rank;
+               snprintf(h.name, sizeof(h.name), "%s", t);
+            }
+         }
+      }
+      if (!h.name[0])
+         snprintf(h.name, sizeof(h.name), "(game %s)", h.id);
+      out[n++] = h;
+   }
+   return n;
+}
+
+static int submit_search(const char *query)
+{
+   char q[300], url[1200], dev[120], usr[200];
+   char *p;
+   ss_urlenc(query, q, sizeof(q));
+   ss_urlenc(S.devid, dev, sizeof(dev));
+   snprintf(url, sizeof(url), "%s?devid=%s&devpassword=",
+            SS_API_SEARCH, dev);
+   p = url + strlen(url);
+   ss_urlenc(S.devpass, p, sizeof(url) - (size_t)(p - url));
+   p = url + strlen(url);
+   snprintf(p, sizeof(url) - (size_t)(p - url),
+            "&softname=%s&output=json&systemeid=%d&recherche=%s", SS_SOFT,
+            SS_SYSTEM[S.console], q);
+   if (S.user[0])
+   {
+      p = url + strlen(url);
+      ss_urlenc(S.user, usr, sizeof(usr));
+      snprintf(p, sizeof(url) - (size_t)(p - url), "&ssid=%s&sspassword=", usr);
+      p = url + strlen(url);
+      ss_urlenc(S.pass, p, sizeof(url) - (size_t)(p - url));
+   }
+   return ra_http_submit(url, NULL, NULL);
+}
+
+int ss_search(const char *root, const char *path, const char *name,
+              int console, const char *query)
+{
+   const char *dot;
+   if (S.state != ST_IDLE || !root || !name || !query || !*query ||
+       console < 0 || console > 5 || !ss_configured())
+      return -1;
+   memset(S.url, 0, sizeof(S.url));
+   memset(S.fmt, 0, sizeof(S.fmt));
+   S.got = 0;
+   S.result = 0;
+   S.nhits = 0;
+   S.gameid[0] = '\0';
+   S.console = console;
+   snprintf(S.root, sizeof(S.root), "%s", root);
+   snprintf(S.path, sizeof(S.path), "%s", path ? path : "");
+   snprintf(S.name, sizeof(S.name), "%s", name);
+   snprintf(S.stem, sizeof(S.stem), "%s", name);
+   dot = strrchr(S.stem, '.');
+   if (dot)
+      S.stem[dot - S.stem] = '\0';
+   if (submit_search(query) != 0)
+      return -1;
+   S.state = ST_SEARCH;
+   snprintf(S.note, sizeof(S.note), "Searching ScreenScraper...");
+   return 0;
+}
+
+int ss_hits(const ss_hit **h)
+{
+   if (h)
+      *h = S.hits;
+   return S.nhits;
+}
+
+int ss_pick(int i)
+{
+   if (S.state != ST_IDLE || i < 0 || i >= S.nhits)
+      return -1;
+   snprintf(S.gameid, sizeof(S.gameid), "%s", S.hits[i].id);
+   S.md5[0] = '\0';
+   if (submit_info() != 0)
+      return -1;
+   S.state = ST_INFO;
    snprintf(S.note, sizeof(S.note), "Looking the game up...");
    return 0;
 }
@@ -275,9 +446,14 @@ static int submit_info(void)
    p = url + strlen(url);
    ss_urlenc(S.devpass, p, sizeof(url) - (size_t)(p - url));
    p = url + strlen(url);
-   snprintf(p, sizeof(url) - (size_t)(p - url),
-            "&softname=%s&output=json&systemeid=%d&romnom=%s", SS_SOFT,
-            SS_SYSTEM[S.console], nm);
+   if (S.gameid[0])
+      snprintf(p, sizeof(url) - (size_t)(p - url),
+               "&softname=%s&output=json&systemeid=%d&gameid=%s", SS_SOFT,
+               SS_SYSTEM[S.console], S.gameid);
+   else
+      snprintf(p, sizeof(url) - (size_t)(p - url),
+               "&softname=%s&output=json&systemeid=%d&romnom=%s", SS_SOFT,
+               SS_SYSTEM[S.console], nm);
    if (S.md5[0])
    {
       p = url + strlen(url);
@@ -352,6 +528,7 @@ int ss_pump(char *msg, size_t cap, int *got)
    }
    if (ra_http_take(&r))
    {
+      snprintf(S.detail, sizeof(S.detail), "status=%d %s", r.status, r.note);
       if (S.state == ST_HASH)
       {
          /* status 0 and the 32 hex digits in `note`, or -1: unreadable file */
@@ -362,6 +539,29 @@ int ss_pump(char *msg, size_t cap, int *got)
             finish(SS_FAILED, "Network busy, try again");
          else
             S.state = ST_INFO;
+      }
+      else if (S.state == ST_SEARCH)
+      {
+         if (r.status == 200 && r.body)
+            S.nhits = ss_parse_search(r.body, S.hits, SS_HITS_MAX);
+         if (S.nhits > 0)
+         {
+            free(r.body);
+            S.state = ST_IDLE;
+            S.result = SS_FOUND;
+            snprintf(S.note, sizeof(S.note), "%d games found", S.nhits);
+         }
+         else
+         {
+            const char *why = r.status == RA_HTTP_RETRY
+                                 ? "No connection to ScreenScraper"
+                              : r.status == 403 ? "ScreenScraper refused the login"
+                              : r.status == 430 || r.status == 431
+                                 ? "ScreenScraper: daily limit reached"
+                                 : "Nothing found for that name";
+            free(r.body);
+            finish(SS_FAILED, why);
+         }
       }
       else if (S.state == ST_INFO)
       {
@@ -420,4 +620,9 @@ int ss_pump(char *msg, size_t cap, int *got)
       *got = S.got;
    snprintf(msg, cap, "%s", S.note);
    return rc;
+}
+
+const char *ss_detail(void)
+{
+   return S.detail;
 }

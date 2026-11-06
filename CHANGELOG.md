@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+- ScreenScraper chooser: TRIANGLE asks how to scrape, by the file (automatic) or by a name you type,
+  then lists the games found so you can pick the right one.
+- LCD / CRT shaders are specialised on their preset (U2..U4 become constants in the shader), and a
+  filter switched off for being slow logs the yardstick (`gpu_fx_base`) of the same frames without it.
+
 - Scrape one game from ScreenScraper: TRIANGLE in the game list fetches the highlighted game's
   cover, title screen and video preview (videos/<name>.mp4) and replaces the libretro cover.
   The user types their own ScreenScraper account in Settings > Library > ScreenScraper

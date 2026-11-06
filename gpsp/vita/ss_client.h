@@ -45,7 +45,20 @@ int  ss_configured(void);
 int  ss_start(const char *root, const char *path, const char *name,
               int console);
 int  ss_busy(void);
-enum { SS_IDLE = 0, SS_WORKING = 1, SS_DONE = 2, SS_FAILED = -1 };
+enum { SS_IDLE = 0, SS_WORKING = 1, SS_DONE = 2, SS_FOUND = 3, SS_FAILED = -1 };
+#define SS_HITS_MAX 30
+typedef struct { char id[16]; char name[96]; } ss_hit;
+/* Search by name instead of by file: ss_search, then ss_pump until SS_FOUND
+ * (ss_hits lists them), then ss_pick(i) to fetch that game's pictures like
+ * ss_start does.  `path` may be NULL.  SS_FOUND is returned once. */
+int  ss_search(const char *root, const char *path, const char *name,
+               int console, const char *query);
+int  ss_hits(const ss_hit **h);
+int  ss_pick(int i);
+/* The last HTTP answer (status and its note), for the log. */
+const char *ss_detail(void);
+/* Pure: the games of a jeuRecherche answer (best-region name each). */
+int  ss_parse_search(const char *json, ss_hit *out, int max);
 /* One step.  Returns SS_*; `msg` always holds a line fit for a toast.  SS_DONE
  * and SS_FAILED are each returned once, then SS_IDLE.  `got` (may be NULL)
  * gets a bit set per thing written: 1 cover, 2 title, 4 video. */

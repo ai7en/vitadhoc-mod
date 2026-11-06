@@ -794,6 +794,16 @@ static const char g_main2[] =
    "            uniform float4 RefSize, uniform float4 InfoScale,\n"
    "            uniform float4 OutScale) : COLOR\n{\n";
 
+/* fx programs specialised on their preset (vb_prog_fold): U2..U4 */
+static float g_fold[VB_PROGS][3][4];
+static int g_fold_on[VB_PROGS];
+
+static const char g_main_fx_fold[] =
+   "float4 main(float2 vTexcoord : TEXCOORD0,\n"
+   "            uniform sampler2D Source : TEXUNIT0,\n"
+   "            uniform float4 U0, uniform float4 U1,\n"
+   "            uniform float4 U5) : COLOR\n{\n";
+
 static const char g_main_fx[] =
    "float4 main(float2 vTexcoord : TEXCOORD0,\n"
    "            uniform sampler2D Source : TEXUNIT0,\n"
@@ -966,7 +976,7 @@ static char *prog_text(int which)
    {
       common = gpu_src_fx_common;
       body = which == VB_PROG_FX_LCD ? gpu_src_fx_lcd : gpu_src_fx_crt;
-      mainf = g_main_fx;
+      mainf = g_fold_on[which] ? g_main_fx_fold : g_main_fx;
    }
    else
    {
@@ -977,9 +987,21 @@ static char *prog_text(int which)
             : which == VB_PROG_XBRZ1 ? g_main1 : g_main2;
    }
    len = strlen(g_prelude_cg) + strlen(common) + strlen(mainf) +
-         strlen(body) + 4;
+         strlen(body) + 512;
    text = (char *)malloc(len);
-   if (text)
+   if (text && which >= VB_PROG_FX_LCD && g_fold_on[which])
+   {
+      char consts[400];
+      int k, n = 0;
+      for (k = 0; k < 3; k++)
+         n += snprintf(consts + n, sizeof(consts) - (size_t)n,
+                       "const float4 U%d = float4(%.6g, %.6g, %.6g, %.6g);\n",
+                       k + 2, g_fold[which][k][0], g_fold[which][k][1],
+                       g_fold[which][k][2], g_fold[which][k][3]);
+      snprintf(text, len, "%s%s%s%s%s}\n", g_prelude_cg, common, mainf, consts,
+               body);
+   }
+   else if (text)
       snprintf(text, len, "%s%s%s%s}\n", g_prelude_cg, common, mainf, body);
    return text;
 }
@@ -1125,6 +1147,27 @@ static void prog_release(void)
       memset(&g_prog[i], 0, sizeof(g_prog[i]));
       g_prog_state[i] = 0;
    }
+}
+
+void vb_prog_fold(int which, const float uni[VB_PROG_UNIFORMS][4])
+{
+   if (which < VB_PROG_FX_LCD || which >= VB_PROGS)
+      return;
+   if (g_fold_on[which] && !memcmp(g_fold[which], uni[2], sizeof(g_fold[which])))
+      return;
+   if (g_prog_state[which] > 0)
+   {
+      /* the general or older program goes; the next vb_prog_get builds this */
+      SceGxmShaderPatcher *sp = vita2d_get_shader_patcher();
+      vita2d_wait_rendering_done();
+      sceGxmShaderPatcherReleaseFragmentProgram(sp, g_prog[which].fp);
+      sceGxmShaderPatcherUnregisterProgram(sp, g_prog[which].id);
+      free(g_prog[which].gxp);
+      memset(&g_prog[which], 0, sizeof(g_prog[which]));
+   }
+   memcpy(g_fold[which], uni[2], sizeof(g_fold[which]));
+   g_fold_on[which] = 1;
+   g_prog_state[which] = 0;
 }
 
 const char *vb_prog_status(int which)

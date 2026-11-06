@@ -200,6 +200,13 @@ enum { VB_PROG_UNIFORMS = 6 };
 typedef struct vb_prog vb_prog;
 vb_prog    *vb_prog_get(int which);
 const char *vb_prog_status(int which);
+/* Specialise an fx program on its preset: uniforms [2]..[4] become constants
+ * in the shader text, so the compiler drops every branch and tap the preset
+ * does not use (a uniform-driven branch costs every pixel on the SGX).  Call
+ * it between frames (a program with other constants is released); the next
+ * vb_prog_get compiles or loads the specialised program, cached by its text.
+ * Without a call the program stays general. */
+void vb_prog_fold(int which, const float uni[VB_PROG_UNIFORMS][4]);
 /* Diagnostics: compile test program n (0, 1, ...) and describe the result
  * in `out`; 0 = no such test.  Nothing is kept. */
 int         vb_prog_probe(int n, char *out, size_t outlen);
