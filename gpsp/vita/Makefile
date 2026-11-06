@@ -35,6 +35,8 @@
 #   UNSAFE=1             an "unsafe" eboot (extended permissions).  Nothing
 #                        here needs it; a kernel-plugin feature would.
 #   EXTRA_CFLAGS=...     one-off core defines
+#   SS_DEVID=... SS_DEVPASS=...   the ScreenScraper developer login, built in
+#                        (never committed; see ss_client.h)
 #
 # WHAT THE APP IS MADE OF is not listed here: app.mk has the one list of
 # sources (shared with hostcore/Makefile, the Linux twin of the whole app)
@@ -98,7 +100,8 @@ include retrocores.mk
 # ---- the app --------------------------------------------------------------------
 APP_DEFS += -DGBADHOC_VERSION=\"$(VERSION)\" \
             $(if $(filter 1,$(GBA_LINK)),-DGBA_LINK) \
-            $(if $(filter 1,$(ARM_FAR_STUBS)),-DARM_FAR_STUBS)
+            $(if $(filter 1,$(ARM_FAR_STUBS)),-DARM_FAR_STUBS) \
+            $(if $(SS_DEVID),-DSS_DEVID=\"$(SS_DEVID)\" -DSS_DEVPASS=\"$(SS_DEVPASS)\")
 # -Wno-type-limits: psp/ui_psp.h compares an enum with 0, and an ARM EABI
 # enum is unsigned.
 APP_WARN := -Wall -Wextra -Wno-type-limits -std=gnu11
