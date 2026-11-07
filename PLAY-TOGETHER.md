@@ -1,13 +1,13 @@
 # Play Together
 
-Open the in-game menu > Play together. VitAdhoc does GBA Link Cable, GBA
+Open the in-game menu > Play together. Retro Adhoc does GBA Link Cable, GBA
 Wireless Adapter and Game Boy / Game Boy Color Link Cable games. Back up an
 important save before linking: two-Vita play is still being confirmed on
 hardware for version 1.0 (see [Known Issues](KNOWN-ISSUES.md)).
 
 ## Two Vitas
 
-Use the same VitAdhoc version on both consoles. A patched game (a ROM hack or
+Use the same Retro Adhoc version on both consoles. A patched game (a ROM hack or
 translation) needs the same patch on both. Vita-to-PSP linking is not
 supported. Both players must have permission to use the cartridges involved.
 
@@ -47,7 +47,7 @@ link transport; use Wi-Fi or ad hoc instead.
 
 From the home screen, open Settings > Link setup > Share game data. On the other
 Vita, choose Join a share and select the offered file/target state slot.
-Both Vitas need VitAdhoc. This works over local Wi-Fi only, not
+Both Vitas need Retro Adhoc. This works over local Wi-Fi only, not
 internet or ad hoc. A replaced battery save is retained as `<game>.sav.bak`.
 Check the received file before removing your own backup.
 

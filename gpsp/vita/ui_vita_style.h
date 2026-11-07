@@ -1,4 +1,4 @@
-/* ui_vita_style.h -- VitAdhoc's look, shared by the home screen
+/* ui_vita_style.h -- Retro Adhoc's look, shared by the home screen
  * (ui_vita_home.h), the in-game control centre (ui_vita_menu.h) and the
  * restyled page chrome in psp/ui_psp.c.
  *

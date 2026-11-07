@@ -1,7 +1,7 @@
-VitAdhoc 1.2
+Retro Adhoc 1.2
 Game Boy Advance, Game Boy and Game Boy Color for PS Vita
 
-Thanks for trying VitAdhoc! Here's everything you need to get playing.
+Thanks for trying Retro Adhoc! Here's everything you need to get playing.
 
 
 What You Need
@@ -11,18 +11,18 @@ What You Need
 
 
 Easy Install
-Open the CBOC Vita Installer on your computer and drop VitAdhoc.vpk (or this
+Open the CBOC Vita Installer on your computer and drop RetroAdhoc.vpk (or this
 whole ZIP) onto it. Add your games if you like. It finds your Vita and does
 the rest.
 https://github.com/CBOC-Vita-Lab/vita-installer/releases
 
 
 Manual Install
-1. Copy VitAdhoc.vpk to your Vita with VitaShell (USB or FTP) and install it.
-2. Start VitAdhoc once. It creates ux0:data/RetroAdhoc/
+1. Copy RetroAdhoc.vpk to your Vita with VitaShell (USB or FTP) and install it.
+2. Start Retro Adhoc once. It creates ux0:data/RetroAdhoc/
 3. Put your games in ux0:data/RetroAdhoc/roms/
    (games already in ux0:ROMS/ or RetroFlow's folders are found by themselves)
-4. Start VitAdhoc again and pick a game.
+4. Start Retro Adhoc again and pick a game.
 
 
 Updating
@@ -32,7 +32,7 @@ settings stay where they are.
 
 Saves From Another Emulator
 Put the save next to the game (Game.srm, or Game.sav for a Game Boy game) or
-in ux0:data/RetroAdhoc/import/. VitAdhoc takes it in the first time you start
+in ux0:data/RetroAdhoc/import/. Retro Adhoc takes it in the first time you start
 that game, as long as the game has no save here yet. Details: INSTALL.md.
 
 

@@ -1,4 +1,4 @@
-/* ui_vita_home.h -- VitAdhoc's home screen: the game list as a row of
+/* ui_vita_home.h -- Retro Adhoc's home screen: the game list as a row of
  * tiles over the focused game's own picture.
  *
  * Included by psp/ui_psp.c under -DVITA after ui_vita_browser.h: it draws
@@ -50,7 +50,7 @@
 #define UI_VITA_HOME_ASYNC 1
 
 #define HM_X        44
-#define HM_TEX      160          /* a tile's texture edge                    */
+#define HM_TEX      208          /* a tile's texture edge                    */
 #define HM_TILES    16           /* tiles kept                               */
 #define HM_TITLE_Y  300
 #define HM_BTN_Y    448
@@ -442,7 +442,7 @@ static int hm_thumb_tile(hm_tile *t)
    free(th);
    hm_square(big, tw, tht, g_hm_sq, HM_TEX);
    free(big);
-   hm_round(g_hm_sq, HM_TEX, 20);
+   hm_round(g_hm_sq, HM_TEX, 26);
    t->img = vs_img_new(HM_TEX, HM_TEX);
    if (!t->img)
       return 0;
@@ -483,7 +483,7 @@ static void hm_tile_load(const char *rom_dir, hm_tile *t)
    }
    if (t->state == 1)
    {
-      hm_round(g_hm_sq, HM_TEX, 20);
+      hm_round(g_hm_sq, HM_TEX, 26);
       t->img = vs_img_new(HM_TEX, HM_TEX);
       if (t->img)
          vs_img_set(t->img, g_hm_sq, HM_TEX);

@@ -28,6 +28,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <sys/stat.h>
 
 #include "fe_retro.h"
 #include "fe_evt.h"
@@ -173,8 +174,11 @@ static struct
    unsigned save_fails;
 
    /* core options: key -> value, defaults from SET_VARIABLES */
-   struct { char key[64]; char val[64]; } opt[96];
+   struct { char key[64]; char val[64]; char label[48]; char list[176]; }
+      opt[96];
    int nopt;
+   int opt_changed;             /* GET_VARIABLE_UPDATE answers once          */
+   int opt_dirty;               /* edited since the file was written         */
 
    char sysdir[512], savedir[512];
 } R;
@@ -222,6 +226,20 @@ static void options_from_variables(const struct retro_variable *v)
       }
       def[n] = '\0';
       opt_set(v->key, def);
+      {
+         int i;
+         for (i = 0; i < R.nopt; i++)
+            if (!strcmp(R.opt[i].key, v->key))
+            {
+               size_t ln = (size_t)(semi - v->value) - 1;
+               if (ln >= sizeof(R.opt[i].label))
+                  ln = sizeof(R.opt[i].label) - 1;
+               memcpy(R.opt[i].label, v->value, ln);
+               R.opt[i].label[ln] = '\0';
+               snprintf(R.opt[i].list, sizeof(R.opt[i].list), "%s", semi);
+               break;
+            }
+      }
    }
 }
 
@@ -240,6 +258,148 @@ static void options_tune(int ci)
       opt_set("fceumm_ntsc_filter", "disabled");
       opt_set("fceumm_sndquality", "Low");
    }
+}
+
+
+/* --------------------------------------------- the player's core options -- */
+
+/* Options that would change the picture's size or format under the
+ * frontend, or that the frontend sets for the handheld screen itself. */
+static int opt_hidden(const char *key)
+{
+   return strstr(key, "ntsc") != NULL || strstr(key, "_render") != NULL ||
+          strstr(key, "audio_filter") != NULL;
+}
+
+static int options_file_path(char *out, size_t cap)
+{
+   static const char *const tag[] = { "md", "nes", "snes" };
+   const char *t = R.ci >= 0 && R.ci < 3 ? tag[R.ci] : "core";
+   if (!R.cfg.options_dir || !R.cfg.options_dir[0])
+      return -1;
+   return snprintf(out, cap, "%s/%s.ini", R.cfg.options_dir, t) < (int)cap
+          ? 0 : -1;
+}
+
+/* key=value lines; a key the core does not have is ignored. */
+static void options_file_load(void)
+{
+   char path[600], line[160];
+   FILE *f;
+   if (options_file_path(path, sizeof(path)) != 0 || !(f = fopen(path, "r")))
+      return;
+   while (fgets(line, sizeof(line), f))
+   {
+      char *eq = strchr(line, '='), *e;
+      int i;
+      if (!eq)
+         continue;
+      *eq++ = '\0';
+      for (e = eq + strlen(eq); e > eq && (e[-1] == '\n' || e[-1] == '\r');)
+         *--e = '\0';
+      for (i = 0; i < R.nopt; i++)
+         if (!strcmp(R.opt[i].key, line) && R.opt[i].list[0] &&
+             !opt_hidden(line))
+         {
+            snprintf(R.opt[i].val, sizeof(R.opt[i].val), "%s", eq);
+            break;
+         }
+   }
+   fclose(f);
+}
+
+int fe_retro_opt_count(void)
+{
+   int i, n = 0;
+   if (!R.active)
+      return 0;
+   for (i = 0; i < R.nopt; i++)
+      if (R.opt[i].list[0] && !opt_hidden(R.opt[i].key))
+         n++;
+   return n;
+}
+
+/* The n-th shown option: its label (the key when the core gave none) and
+ * current value; 0 when n is out of range. */
+int fe_retro_opt_get(int n, const char **label, const char **value)
+{
+   int i;
+   for (i = 0; i < R.nopt; i++)
+   {
+      if (!R.opt[i].list[0] || opt_hidden(R.opt[i].key))
+         continue;
+      if (n-- == 0)
+      {
+         if (label)
+            *label = R.opt[i].label[0] ? R.opt[i].label : R.opt[i].key;
+         if (value)
+            *value = R.opt[i].val;
+         return 1;
+      }
+   }
+   return 0;
+}
+
+/* The next (dir > 0) or previous value of the n-th shown option. */
+int fe_retro_opt_step(int n, int dir)
+{
+   int i;
+   for (i = 0; i < R.nopt; i++)
+   {
+      const char *p;
+      char vals[24][64];
+      int cnt = 0, at = -1, k;
+      if (!R.opt[i].list[0] || opt_hidden(R.opt[i].key) || n-- != 0)
+         continue;
+      for (p = R.opt[i].list; *p && cnt < 24;)
+      {
+         size_t len = strcspn(p, "|");
+         if (len >= sizeof(vals[0]))
+            len = sizeof(vals[0]) - 1;
+         memcpy(vals[cnt], p, len);
+         vals[cnt][len] = '\0';
+         if (!strcmp(vals[cnt], R.opt[i].val))
+            at = cnt;
+         cnt++;
+         p += strcspn(p, "|");
+         if (*p == '|')
+            p++;
+      }
+      if (cnt < 2)
+         return -1;
+      k = at < 0 ? 0 : (at + (dir < 0 ? cnt - 1 : 1)) % cnt;
+      snprintf(R.opt[i].val, sizeof(R.opt[i].val), "%s", vals[k]);
+      R.opt_changed = 1;
+      R.opt_dirty = 1;
+      return 0;
+   }
+   return -1;
+}
+
+/* Writes the file when something was edited since the last write. */
+int fe_retro_opt_save(void)
+{
+   char path[600], tmp[610];
+   FILE *f;
+   int i;
+   if (!R.active || !R.opt_dirty || options_file_path(path, sizeof(path)))
+      return 0;
+   (void)mkdir(R.cfg.options_dir, 0777);
+   snprintf(tmp, sizeof(tmp), "%s.tmp", path);
+   f = fopen(tmp, "w");
+   if (!f)
+      return -1;
+   for (i = 0; i < R.nopt; i++)
+      if (R.opt[i].list[0] && !opt_hidden(R.opt[i].key))
+         fprintf(f, "%s=%s\n", R.opt[i].key, R.opt[i].val);
+   if (fclose(f) != 0 || rename(tmp, path) != 0)
+   {
+      remove(tmp);
+      return -1;
+   }
+   R.opt_dirty = 0;
+   fe_evt("retro_options_saved file=%s", path);
+   return 0;
 }
 
 /* --------------------------------------------------------- environment -- */
@@ -308,6 +468,7 @@ static bool env_cb(unsigned cmd, void *data)
    case RETRO_ENVIRONMENT_SET_VARIABLES:
       options_from_variables((const struct retro_variable *)data);
       options_tune(R.ci);
+      options_file_load();
       return true;
    case RETRO_ENVIRONMENT_GET_VARIABLE:
    {
@@ -325,7 +486,8 @@ static bool env_cb(unsigned cmd, void *data)
       return false;
    }
    case RETRO_ENVIRONMENT_GET_VARIABLE_UPDATE:
-      if (data) *(bool *)data = false;
+      if (data) *(bool *)data = R.opt_changed != 0;
+      R.opt_changed = 0;
       return true;
    case RETRO_ENVIRONMENT_GET_LOG_INTERFACE:
       if (data) ((struct retro_log_callback *)data)->log = fr_log;
@@ -613,9 +775,11 @@ int fe_retro_boot(const fe_retro_config *cfg)
    long len;
    uint8_t *rom = NULL;
    int ci;
+   uint64_t t0, t_read, t_init, t_load;
 
    if (!cfg || !cfg->rom_path)
       return -1;
+   t0 = cfg->time_us ? cfg->time_us() : 0;
    ci = core_index(cfg->console);
    if (ci < 0 || !FR_LINKED || R.active)
       return -1;
@@ -654,6 +818,7 @@ int fe_retro_boot(const fe_retro_config *cfg)
    }
    fclose(f);
 
+   t_read = cfg->time_us ? cfg->time_us() : 0;
    R.api->set_environment(env_cb);
    R.api->set_video_refresh(video_cb);
    R.api->set_audio_sample(audio_cb);
@@ -661,6 +826,7 @@ int fe_retro_boot(const fe_retro_config *cfg)
    R.api->set_input_poll(input_poll_cb);
    R.api->set_input_state(input_state_cb);
    R.api->init();
+   t_init = cfg->time_us ? cfg->time_us() : 0;
    if (cfg->boot_status)
       cfg->boot_status("Loading game");
    memset(&game, 0, sizeof(game));
@@ -677,6 +843,10 @@ int fe_retro_boot(const fe_retro_config *cfg)
    }
    free(rom);
    R.active = 1;
+   t_load = cfg->time_us ? cfg->time_us() : 0;
+   fe_evt("retro_boot_time read_us=%u init_us=%u load_us=%u",
+          (unsigned)(t_read - t0), (unsigned)(t_init - t_read),
+          (unsigned)(t_load - t_init));
 
    R.api->get_system_av_info(&av);
    R.w = av.geometry.base_width;

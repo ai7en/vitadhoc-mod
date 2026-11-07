@@ -21,10 +21,10 @@
 #define UI_VITA_BROWSER_H
 
 /* Native-pixel geometry shared with Home's tile drawing below this header. */
-#define HM_ROW_Y    86
-#define HM_BIG      132
-#define HM_SMALL    96
-#define HM_GAP      14
+#define HM_ROW_Y    80
+#define HM_BIG      198
+#define HM_SMALL    144
+#define HM_GAP      20
 
 static tch_scroll_t g_br_ts;
 

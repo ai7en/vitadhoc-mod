@@ -39,6 +39,7 @@ typedef struct fe_retro_config
    uint32_t (*input_bitmask)(void);           /* RETRO_DEVICE_ID_JOYPAD_*    */
    uint64_t (*time_us)(void);
    void (*boot_status)(const char *stage);
+   const char *options_dir;    /* where the player's core options are kept   */
 } fe_retro_config;
 
 /* Boots the core and loads the game and its battery file.  0 on success. */
@@ -77,6 +78,15 @@ void fe_retro_sram_service(unsigned frame);
  * without saving rather than overwriting what it could not read. */
 int  fe_retro_battery_failed(void);
 unsigned fe_retro_save_failures(void);
+
+/* The core's options the player may change (Settings > Core options).  _get
+ * names the n-th one and its value; _step moves it to the next (dir > 0) or
+ * previous value, which the core reads on its next frame; _save writes the
+ * edited ones to <options_dir>/<console>.ini, read back at the next boot. */
+int fe_retro_opt_count(void);
+int fe_retro_opt_get(int n, const char **label, const char **value);
+int fe_retro_opt_step(int n, int dir);
+int fe_retro_opt_save(void);
 
 /* Memory view for RetroAchievements / cheats-style readers: the core's
  * system RAM.  Bytes past the end read 0.  Returns bytes written. */

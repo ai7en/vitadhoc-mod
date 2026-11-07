@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+- Settings: the Link Setup section is gone; the home screen's tap-to-open menu now answers a tap anywhere on the screen.
+- New Settings > THIS GAME > Core options: the options of the Genesis, NES and SNES cores, kept in `ux0:data/RetroAdhoc/cores/<console>.ini`.
+- Game loading: older-version save probing is skipped for the libretro consoles; the log now lists `launch_prep` and `retro_boot_time` stage times.
+- Game icons on the home screen are 1.5 times larger.
+- The name Vita Adhoc is replaced by Retro Adhoc in the app, its documents and its logo (upstream credit stays in CREDITS.md and notices).
+
 - Video previews read the chroma plane as UV: with VU the colours came out blue (`video_uv_swap`
   in vita.ini, now 1 by default).
 - Video previews: the clip of the last play comes first and the scraped video plays for games

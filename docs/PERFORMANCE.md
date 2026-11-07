@@ -1,6 +1,6 @@
 # Performance
 
-## Pokemon Unbound 2.1.1.1 On VitAdhoc 1.2
+## Pokemon Unbound 2.1.1.1 On Retro Adhoc 1.2
 
 **About 60 emulated fps in the sampled opening beach scene, at full-screen
 stretch with CPU xBRZ 3x.** The frontend produced about 44 video callbacks

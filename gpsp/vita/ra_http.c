@@ -41,7 +41,7 @@ static struct
    char   agent[192];
    int  (*online)(void);
    char  *dl;                    /* the job is a download into this file */
-} H = { 0, 0, 0, NULL, NULL, NULL, 0, { 0, NULL, 0, "" }, "VitAdhoc", NULL };
+} H = { 0, 0, 0, NULL, NULL, NULL, 0, { 0, NULL, 0, "" }, "RetroAdhoc", NULL };
 
 void ra_http_config(const char *user_agent, int (*online)(void))
 {

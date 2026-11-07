@@ -3,7 +3,7 @@
 | Item | Value |
 | --- | --- |
 | Version | 1.2 |
-| Package | `VitAdhoc.vpk`, SHA-256 `b844da404b1ed36ca776818d6870a19c3effc23a4c39ed6503854eeb16c940de` |
+| Package | `RetroAdhoc.vpk`, SHA-256 `b844da404b1ed36ca776818d6870a19c3effc23a4c39ed6503854eeb16c940de` |
 | Runtime (`eboot.bin`) | SHA-256 `3e107b77447ef26961de846a32b0cf90e9cafe55dcc56329efaa75424e0b4074` |
 | Title ID | `GBAD00001` (existing data layout: `ux0:data/RetroAdhoc/`) |
 | Original 1.2 source commit | `dd6998f6a902f0f0a8deae0ae3e16c73b5c103f7`, based on 1.1 commit `91ce334f2e807e919ce7602e86bb9d44c13dde50` |

@@ -720,7 +720,7 @@ static vb_tex *g_logo_tex;
 
 void vid_logo(int x, int y, uint16_t rgb565, int alpha)
 {
-   /* VitAdhoc's wordmark (vstyle.c), in the old one's 302 x 48 box: the
+   /* Retro Adhoc's wordmark (vstyle.c), in the old one's 302 x 48 box: the
     * screens laid out around VID_LOGO_W keep their places. */
    vs_wordmark((float)(x * VV_S), (float)(y * VV_S) + 1.0f, 46.0f,
                c565(rgb565, alpha & 0xFF));

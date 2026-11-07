@@ -267,6 +267,8 @@ typedef struct fe_host_config
    /* Optional, synchronous boot-only status. Called on the booting thread;
     * must not re-enter the core. NULL keeps desktop/other hosts unchanged. */
    void (*boot_status)(const char *stage);
+   /* Where a libretro core's options are kept (fe_retro.h); NULL = nowhere. */
+   const char *options_dir;
 } fe_host_config;
 
 /* Must be >= the core's SMC_BLK_SLOTS / SMC_WR_SLOTS / SMC_BLK_SNAP. */

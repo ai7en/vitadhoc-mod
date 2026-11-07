@@ -294,7 +294,7 @@ class Suite:
 def menu_pick(row, wait=40):
     """Open the in-game menu (START+SELECT held) and choose its row:
     0 Resume, 1 Save states, 2 Play together, 3 Cheats, 4 Settings,
-    5 Quit to game list, 6 Exit VitAdhoc (the last two ask first, and this
+    5 Quit to game list, 6 Exit Retro Adhoc (the last two ask first, and this
     answers yes).  The menu is the Vita's control centre, its cards in a
     row; DOWN steps along them as RIGHT does."""
     s = "+%d:start+select:20\n" % wait

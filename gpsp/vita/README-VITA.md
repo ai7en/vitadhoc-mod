@@ -1,4 +1,4 @@
-# VitAdhoc
+# Retro Adhoc
 
 Game Boy Advance, Game Boy and Game Boy Color on the PS Vita, with two-player link play: a
 native Vita app built from GBAdhoc 4.1.1 (the PSP emulator), with its own look. Written with an
@@ -7,7 +7,7 @@ AI assistant (Claude) and tested on a real Vita; GPL-2.0, like GBAdhoc and gpSP.
 ## What it looks like
 - **Home.** Your games as a row of tiles. The focused one is large, with its name beside it,
   and behind everything is that game's picture: its box art or hero art if you added some,
-  otherwise the last scene you saw in it. VitAdhoc saves that scene each time you leave a game.
+  otherwise the last scene you saw in it. Retro Adhoc saves that scene each time you leave a game.
   Left and right move along the row, Cross plays. Down lifts the page and shows the game's save
   states as cards: pick one and press Cross to continue from it. Square stars a game, Select
   shows only starred games, Triangle switches between GBA, GB and GBC, Start opens Settings.
@@ -16,7 +16,7 @@ AI assistant (Claude) and tested on a real Vita; GPL-2.0, like GBAdhoc and gpSP.
   last ten seconds you played of it, real frames of your own game, a little like a streaming
   service's trailer. It plays, fades back into the still picture (its own last frame), and
   starts again a moment later. If you stood still for a while before leaving (a pause screen,
-  a dialogue left open), the clip ends a second after things went still instead. VitAdhoc
+  a dialogue left open), the clip ends a second after things went still instead. Retro Adhoc
   records while you play (every second frame, squeezed in memory; a typical clip is 0.2 to
   2 MB) and writes `clips/<game>.clip` when you leave the game. Nothing is recorded during fast
   forward, rewind or a link session. A game played for under three seconds keeps its old
@@ -59,7 +59,7 @@ emulator, real Wi-Fi between two Vitas above all ("What was tested" at the end s
 which).
 
 ## Install
-1. Copy `VitAdhoc.vpk` to the Vita and install it with VitaShell (HENkaku / Enso).
+1. Copy `RetroAdhoc.vpk` to the Vita and install it with VitaShell (HENkaku / Enso).
 2. Start it once. It creates `ux0:data/RetroAdhoc/`.
 3. Copy games to `ux0:data/RetroAdhoc/roms/` (`.gba`, `.gb`, `.gbc`; sub-folders are fine), or
    leave them where they are: see "Games in other folders" below.
@@ -231,7 +231,7 @@ that off.
   frame. Only VRAM pages written since the last frame are handed over (usually none to two of
   96). Two players (linked or on one Vita) draw as before.
 - **Fast forward at 3x** no longer draws the two frames in each three that are never shown.
-- **500 MHz**: with the PSVshell plugin, VitAdhoc has its own profile
+- **500 MHz**: with the PSVshell plugin, Retro Adhoc has its own profile
   (`ur0:data/PSVshell/profiles/GBAD00001`) that runs the processor at 500 MHz instead of 444.
   Measured: about a tenth less time a frame. The app's log shows the measured clock
   (`mhz_measured` in the `switches2` line); the system tells the app 444 either way.

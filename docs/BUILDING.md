@@ -35,8 +35,8 @@ From the repository root, with the SDK at `/opt/vitasdk`:
 make -C gpsp/vita -j4 vpk BIOS= VITASDK=/opt/vitasdk
 ```
 
-Output: `gpsp/vita/VitAdhoc.vpk`; intermediate files are in
-`gpsp/vita/build/vita/`. The default title is VitAdhoc, ID `GBAD00001`,
+Output: `gpsp/vita/RetroAdhoc.vpk`; intermediate files are in
+`gpsp/vita/build/vita/`. The default title is Retro Adhoc, ID `GBAD00001`,
 version 4.1.1 / SFO 04.11, ATTRIBUTE2 12. The shared package must use empty
 `BIOS=`. Do not add a private BIOS to a public build.
 
@@ -60,8 +60,8 @@ make -C gpsp/vita/hostcore ARCH=x86 -j8                   # the app, built for L
 python3 gpsp/vita/hostcore/app_tests.py x86 --keep        # whole-app tests
 ```
 
-The package test checks `VitAdhoc.vpk` at the repository root (or
-`RELEASE_VPK=/path/to/VitAdhoc.vpk`): no BIOS or games inside, the notices
+The package test checks `RetroAdhoc.vpk` at the repository root (or
+`RELEASE_VPK=/path/to/RetroAdhoc.vpk`): no BIOS or games inside, the notices
 byte-identical to this tree, and the expected runtime hash.
 
 The whole-app tests run the real app on Linux with a scripted pad, touch and
@@ -102,6 +102,6 @@ It is not a native Apple Silicon test command.
 Check safe/unique archive paths, `GBAD00001`, no original BIOS/ROM/save, the
 expected executable hash, all readable notices, fonts/art/database provenance
 and corresponding source. The release VPK sits at the repository root as
-`VitAdhoc.vpk`, beside the source it was built from; `SHA256SUMS` lists every
+`RetroAdhoc.vpk`, beside the source it was built from; `SHA256SUMS` lists every
 file (`python3 tools/update-checksums.py`). Final acceptance must test the exact chosen package on physical Vita;
 a build, archive scan or emulator run does not replace that check.

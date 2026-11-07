@@ -74,7 +74,7 @@ static void cc_says(int i, int session_active, char *out, size_t cap)
       snprintf(out, cap, "Leave this game for the game list");
       break;
    default:
-      snprintf(out, cap, "Close VitAdhoc");
+      snprintf(out, cap, "Close Retro Adhoc");
       break;
    }
 }

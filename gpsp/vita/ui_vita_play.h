@@ -91,7 +91,7 @@ void ui_link_fail_text(int why, const char **l1, const char **l2)
         "Is the other " UI_DEV " hosting, and on the same network?" },
       { "That room is full.",
         "A room takes two players. Ask the host to open a new one." },
-      { "The other " UI_DEV " runs a different version of VitAdhoc.",
+      { "The other " UI_DEV " runs a different version of Retro Adhoc.",
         "Install the same version on both, then link again." },
       { "The two games are not the same game.",
         "Both players open the same game (and region), then link." },
@@ -664,7 +664,7 @@ static void join_decide(const ui_room *r, join_verdict *v)
         snprintf(v->plate, sizeof(v->plate), __VA_ARGS__); } while (0)
    if (!r->compatible)
       JOIN_NO("different version", "%s runs a different version of "
-              "VitAdhoc.", r->nick[0] ? r->nick : rl);
+              "Retro Adhoc.", r->nick[0] ? r->nick : rl);
    else if (r->kind == ROOM_ADAPTER && !gba)
       JOIN_NO("a Game Boy Advance room", "%s is a Game Boy Advance room.", rl);
    else if (r->kind == ROOM_ADAPTER && !join_can_adapter())

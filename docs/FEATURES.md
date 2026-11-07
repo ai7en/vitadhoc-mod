@@ -1,6 +1,6 @@
 # Features And Settings
 
-VitAdhoc combines GB, GBC and GBA emulation with a Vita-native library,
+Retro Adhoc combines GB, GBC and GBA emulation with a Vita-native library,
 display pipeline, touch input and motion controls. This is the detailed guide;
 start with [Install](../INSTALL.md), [Controls](../CONTROLS.md) or
 [Play Together](../PLAY-TOGETHER.md) for a specific task.
@@ -85,7 +85,7 @@ unzipped games.
 
 Launchers can pass a raw cartridge path through
 `psgm:play?titleid=GBAD00001&param=...`. The path is not URL-decoded. It is read
-at application startup, so close VitAdhoc before launching a different game.
+at application startup, so close Retro Adhoc before launching a different game.
 The [install guide](../INSTALL.md#starting-a-game-from-another-app) has an example.
 
 ## Display

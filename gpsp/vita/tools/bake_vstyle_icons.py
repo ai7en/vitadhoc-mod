@@ -29,7 +29,7 @@ COLS, ROWS = 8, 8
 SMALL, BIG = 32, 64
 MARK_H = 72
 MARKC = 128
-WORD = "VitAdhoc"
+WORD = "Retro Adhoc"
 
 
 def coverage(svg, px):

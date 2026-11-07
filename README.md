@@ -1,19 +1,19 @@
-# VitAdhoc
+# Retro Adhoc
 
 **Game Boy Advance, Game Boy and Game Boy Color, native on PS Vita.**
 
 Your games, together on a home screen with box art, a little history and
 previews of your own play. Pick up where you left off, smooth the pixels or
-keep them crisp, and trade with a friend. VitAdhoc brings the library and the
+keep them crisp, and trade with a friend. Retro Adhoc brings the library and the
 handheld experience together, with touch controls and the Vita's own sensors.
 
 **[Download VitAdhoc 1.2](https://github.com/CBOC-Vita-Lab/vitadhoc/releases/latest/download/VitAdhoc.vpk)**
 | [Install or update](INSTALL.md) | [All features](docs/FEATURES.md)
 | [Performance](docs/PERFORMANCE.md)
 
-![The VitAdhoc home screen on a physical PS Vita](store/screenshots/vita-1.2/home.png)
+![The Retro Adhoc home screen on a physical PS Vita](store/screenshots/vita-1.2/home.png)
 
-*The home screen on a PS Vita running VitAdhoc 1.2.*
+*The home screen on a PS Vita running Retro Adhoc 1.2.*
 
 You'll need your own games. An open-source GBA BIOS is built in; no BIOS
 download is required. Updating from 1.0 or 1.1? Install the VPK over the old
@@ -24,7 +24,7 @@ version. Keep your games, saves, settings and artwork where they are.
 **Bring your saves, your folders and your zips.**
 
 - **Bring an existing save.** Pick up a RetroArch battery save automatically,
-  or put one in the `import` folder. An existing VitAdhoc save is not replaced.
+  or put one in the `import` folder. An existing Retro Adhoc save is not replaced.
 - **Play zipped games.** Supported `.zip` files appear under the right console.
 - **Choose your game folders in Settings.** Add or remove folders without
   editing a configuration file.
@@ -110,8 +110,8 @@ See the [changelog](CHANGELOG.md) for the player-facing changes and
 
 You need a homebrew-enabled PS Vita, VitaShell and your own games.
 
-1. Transfer `VitAdhoc.vpk` with VitaShell over USB or FTP, then install it.
-2. Start VitAdhoc once to create `ux0:data/RetroAdhoc/`.
+1. Transfer `RetroAdhoc.vpk` with VitaShell over USB or FTP, then install it.
+2. Start Retro Adhoc once to create `ux0:data/RetroAdhoc/`.
 3. Add games to `ux0:data/RetroAdhoc/roms/`, use an automatically detected folder,
    or choose **Settings > Library > Game folders**.
 4. Pick a game and press Cross. Triangle switches GBA, GB and GBC.
@@ -157,8 +157,8 @@ cartridges.
 
 | File | Contents |
 | --- | --- |
-| `VitAdhoc.vpk` | The app to install on a Vita. |
-| `VitAdhoc-install.zip` | The same VPK, manual, checksums and complete source. |
+| `RetroAdhoc.vpk` | The app to install on a Vita. |
+| `RetroAdhoc-install.zip` | The same VPK, manual, checksums and complete source. |
 | `cboc-release.json` | Package metadata for the desktop installer. |
 | `SHA256SUMS` | Checksums for the extracted source/install files. |
 
@@ -174,7 +174,7 @@ code are in `gpsp/`.
 
 ## Credits
 
-VitAdhoc builds on [GBAdhoc by ShoshinFauteux](https://github.com/ShoshinFauteux/GBAdhoc).
+Retro Adhoc is a fork of [VitAdhoc by CBOC Vita Lab](https://github.com/CBOC-Vita-Lab/vitadhoc), which builds on [GBAdhoc by ShoshinFauteux](https://github.com/ShoshinFauteux/GBAdhoc).
 Thank you for the emulator, link-play work and original save formats this
 project builds on. The GBA core is gpSP by Exophase and the libretro
 contributors; GB/GBC uses TGB Dual. RetroAchievements uses

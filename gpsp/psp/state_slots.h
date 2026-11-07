@@ -7,7 +7,7 @@
 #include "rom_paths.h"
 #include "fe_console.h"
 
-/* Ten (VitAdhoc 1.2; five before).  The pages show five at a time and
+/* Ten (Retro Adhoc 1.2; five before).  The pages show five at a time and
  * scroll (PSP_STATE_SLOTS_SHOWN). */
 #define PSP_STATE_SLOT_COUNT 10
 #define PSP_STATE_SLOTS_SHOWN 5

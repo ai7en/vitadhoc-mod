@@ -16,14 +16,14 @@ explains display, achievements, patches and link play in more detail.
 
 ## Updating From 1.0 Or 1.1
 
-1. Close VitAdhoc. Back up `ux0:data/RetroAdhoc/` and any saves or states beside
+1. Close Retro Adhoc. Back up `ux0:data/RetroAdhoc/` and any saves or states beside
    games in other folders.
-2. Download `VitAdhoc.vpk` from the
+2. Download `RetroAdhoc.vpk` from the
    [official release](https://github.com/CBOC-Vita-Lab/vitadhoc/releases/latest).
    The title ID remains `GBAD00001`.
 3. Install the VPK over the existing bubble in VitaShell. Do not delete the
    bubble or data folders first.
-4. Start VitAdhoc and check a familiar game and its save before removing a
+4. Start Retro Adhoc and check a familiar game and its save before removing a
    backup. Your ROM folders, battery saves, states, settings and artwork do
    not need to be moved.
 
@@ -33,12 +33,12 @@ The checker verifies listed bytes; it does not test game compatibility.
 
 ## First Install
 
-1. Copy `VitAdhoc.vpk` to `ux0:VPK/` with VitaShell over USB or FTP (make the
+1. Copy `RetroAdhoc.vpk` to `ux0:VPK/` with VitaShell over USB or FTP (make the
    folder if needed). In VitaShell, select the VPK, press Cross and confirm.
-2. Start VitAdhoc once to create `ux0:data/RetroAdhoc/`, then close it.
+2. Start Retro Adhoc once to create `ux0:data/RetroAdhoc/`, then close it.
 3. Copy your games to `ux0:data/RetroAdhoc/roms/`, or use a folder you already
    have (below).
-4. Start VitAdhoc again. Triangle switches between GBA, GB and GBC; Cross plays.
+4. Start Retro Adhoc again. Triangle switches between GBA, GB and GBC; Cross plays.
 
 ### Transfer With VitaShell
 
@@ -48,7 +48,7 @@ The checker verifies listed bytes; it does not test game compatibility.
    then return to the file list.
 2. Connect the USB cable and press Select. The Vita's storage appears as a
    drive on your computer. Open it and make a `VPK` folder if there is none.
-3. Copy `VitAdhoc.vpk` into `VPK`. Eject the drive on the computer before
+3. Copy `RetroAdhoc.vpk` into `VPK`. Eject the drive on the computer before
    disconnecting USB storage on the Vita.
 4. In VitaShell, open `ux0:VPK/`, select the VPK, press Cross and confirm.
 
@@ -61,11 +61,11 @@ Use the address actually shown on your device; an old address may not work.
 After first launch, copy your games the same way into
 `ux0:data/RetroAdhoc/roms/`. `ux0:` means the Vita storage root, not a folder
 you need to create inside the computer's mounted drive. No game downloads
-are provided by VitAdhoc or the installer.
+are provided by Retro Adhoc or the installer.
 
 ## Games You Already Have
 
-VitAdhoc reads `roms/` first, then any of these that exist, without moving
+Retro Adhoc reads `roms/` first, then any of these that exist, without moving
 anything:
 
 ```text
@@ -95,7 +95,7 @@ whole list).
 
 ## Bringing Saves From Another Emulator
 
-VitAdhoc picks up your old save by itself the first time you start a game
+Retro Adhoc picks up your old save by itself the first time you start a game
 that has no save here yet. It looks, in this order:
 
 1. In `ux0:data/RetroAdhoc/import/`: a file named after the game, ending in
@@ -108,16 +108,16 @@ that has no save here yet. It looks, in this order:
 
 The save contents are copied, and a game that already has a save keeps it.
 Files beside a game or in RetroArch's folder are left alone; a file in
-VitAdhoc's `import/` drop folder is renamed `.imported` after a successful
+Retro Adhoc's `import/` drop folder is renamed `.imported` after a successful
 import. A message says where it came from.
 
 Save states from other emulators can't be used: make an in-game battery save
 there first. Import accepts files up to 256 KiB, but an unusual save format
-may still need conversion. Back up the original. If VitAdhoc finds a backup
+may still need conversion. Back up the original. If Retro Adhoc finds a backup
 or temporary save (`.bak`, `.tmp` or `.old`), it does not import over that
 recovery situation. Do not delete those files just to force an import.
 
-VitAdhoc's own save names, beside each game:
+Retro Adhoc's own save names, beside each game:
 
 | Console | Battery save | States | Continue point |
 | --- | --- | --- | --- |
@@ -140,11 +140,11 @@ psgm:play?titleid=GBAD00001&param=ux0:ROMS/GBA/Pokemon Emerald.gba
 Everything after `param=` is the game's path, exactly as written (it is not
 URL-decoded, so names with `&`, `%` or `+` work). A name without a drive is
 looked up in `roms/`. The extension picks the console: `.gba`, `.gb` or
-`.gbc` (a `.zip` works too). Close VitAdhoc before launching another game this way.
+`.gbc` (a `.zip` works too). Close Retro Adhoc before launching another game this way.
 
 ## Zipped Games
 
-Games kept in `.zip` files work too: VitAdhoc looks inside each zip and lists
+Games kept in `.zip` files work too: Retro Adhoc looks inside each zip and lists
 it under its console. On start, the game is unpacked once into
 `ux0:data/RetroAdhoc/unzipped/` (only the game you're playing is kept there) and
 checked against the zip's checksum. Saves and states sit beside the `.zip`,
@@ -217,7 +217,7 @@ Settings) to forget the account.
 Install the new VPK over the old one, following
 [Updating From 1.0 Or 1.1](#updating-from-10-or-11). Everything above stays.
 
-To remove VitAdhoc, delete its bubble. `ux0:data/RetroAdhoc/` stays until you
+To remove Retro Adhoc, delete its bubble. `ux0:data/RetroAdhoc/` stays until you
 delete it yourself, and with it any games and saves kept there.
 
 ## Box Art And Previews

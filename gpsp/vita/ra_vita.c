@@ -393,7 +393,7 @@ void ra_boot(const char *data, const char *host, const char *version,
       rc_client_set_host(R.rc, host);
    clause[0] = '\0';
    rc_client_get_user_agent_clause(R.rc, clause, sizeof(clause));
-   snprintf(ua, sizeof(ua), "VitAdhoc/%s (PlayStation Vita) %s",
+   snprintf(ua, sizeof(ua), "RetroAdhoc/%s (PlayStation Vita) %s",
             version ? version : "dev", clause);
    ra_http_config(ua, online);
    R.online = online;

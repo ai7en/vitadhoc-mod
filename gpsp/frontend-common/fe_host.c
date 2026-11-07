@@ -4052,6 +4052,7 @@ int fe_host_boot(const fe_host_config *cfg)
       rc.input_bitmask = host.input_bitmask;
       rc.time_us = host.time_us;
       rc.boot_status = host.boot_status;
+      rc.options_dir = host.options_dir;
       gb_family = 0;
       gb_core = NULL;
       gb_dual = NULL;

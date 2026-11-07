@@ -259,7 +259,7 @@ static struct
    int      video_stride;
    int      gpu_fx_limit;     /* gpu_fx_limit_us: GPU time a frame the looks may take */
    /* Last: the initializer below is positional, and "" is its default. */
-   char     shot_dir[200];    /* screenshots = ux0:pictures/VitAdhoc: where
+   char     shot_dir[200];    /* screenshots = ux0:pictures/RetroAdhoc: where
                                  * screenshots go (empty: screenshots/) */
    char     ra_host[128];     /* ra_host = http://host[:port]: another
                                * RetroAchievements server (the twin's
@@ -1727,7 +1727,7 @@ static void rom_roots_init(void)
 }
 
 /* A LAUNCHER'S GAME (GitHub issue #3): a front end such as RetroFlow starts
- * VitAdhoc with psgm:play?titleid=GBAD00001&param=<game>.  The text after
+ * Retro Adhoc with psgm:play?titleid=GBAD00001&param=<game>.  The text after
  * "param=" is the game's path exactly as written, never URL-decoded (a name
  * with '%', '&' or '+' in it stays itself); a name without a device is one
  * under roms/.  The console comes from the extension.  Read once, at start.
@@ -1833,7 +1833,7 @@ static void app_notice(const char *title, const char *l1, const char *l2,
       const char *hint = "Press any button for the game list";
 
       vid_overlay_begin(1);
-      /* VitAdhoc's look (vita/ui_vita_style.h): the navy page, a glow, the
+      /* Retro Adhoc's look (vita/ui_vita_style.h): the navy page, a glow, the
        * wordmark small, the words centred */
       vs_rect(0, 0, VS_W, VS_H, VS_HEX(0x060914, 255));
       vs_shadow(330, 110, 300, 220, 110, 160, VS_HEX(0xFF6B6B, 34));
@@ -4018,11 +4018,23 @@ static int game_boot(const char *rom_path, fe_console_t console)
       fe_evt("boot_refused reason=sidecar_path_too_long rom=%s", rom_path);
       return -1;
    }
-   saves_adopt(rom_path, console);
-   save_import(rom_path, g_game.save_path, console);
-   ui_set_state_base(g_game.state_path);
-   ui_loading_begin(rom_path);
-   game_identity();
+   {
+      uint64_t p0 = plat_time_us(), p1, p2, p3;
+      /* Saves of an older version beside the game exist only for the
+       * Game Boy and GBA; the other consoles have none, and probing sixty
+       * names in a folder of thousands of ROMs took seconds on a Vita. */
+      if (console < FE_CONSOLE_MD)
+         saves_adopt(rom_path, console);
+      p1 = plat_time_us();
+      save_import(rom_path, g_game.save_path, console);
+      p2 = plat_time_us();
+      ui_set_state_base(g_game.state_path);
+      ui_loading_begin(rom_path);
+      game_identity();
+      p3 = plat_time_us();
+      fe_evt("launch_prep adopt_us=%u import_us=%u loading_us=%u",
+             (unsigned)(p1 - p0), (unsigned)(p2 - p1), (unsigned)(p3 - p2));
+   }
    fe_evt("game rom=%s size=%ld console=%s code=%s save=%s", rom_path, size,
           console_name(console),
           g_game.code[0] ? g_game.code : g_game.gb_title, g_game.save_path);
@@ -4048,6 +4060,11 @@ static int game_boot(const char *rom_path, fe_console_t console)
    cfg.gb_palette     = g_pcfg.gb_palette;
    cfg.gbc_raw_colors = !g_pcfg.gbc_color_correction;
    cfg.boot_status    = loading_stage;
+   {
+      static char opt_dir[APP_PATH_CAP];
+      if (path_fmt(opt_dir, sizeof(opt_dir), "%s/cores", g_app_root) == 0)
+         cfg.options_dir = opt_dir;
+   }
 
    if (console == FE_CONSOLE_GBA)
    {
@@ -4791,14 +4808,12 @@ static void game_loop(void)
                continue;
             }
          }
-         else if (g_sw.touch_menu && !pad && !link_net_busy() && g_last.pix &&
-                  tx >= r.x && tx < r.x + r.w && ty >= r.y && ty < r.y + r.h)
+         else if (g_sw.touch_menu && !pad && !link_net_busy())
          {
-            /* A tap on the game's picture opens the menu, which is the
-             * touch screen's from there on.  Conservative: a short still
-             * tap, on the picture itself, no button held (a thumb that
-             * brushes the glass in the middle of play is not one), and
-             * never while the network is in use. */
+            /* A tap anywhere on the screen opens the menu, which is the
+             * touch screen's from there on: a short still tap with no
+             * button held (a thumb that brushes the glass in the middle
+             * of play is not one), never while the network is in use. */
             menu_open("touch");
             continue;
          }

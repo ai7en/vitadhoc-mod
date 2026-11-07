@@ -137,7 +137,7 @@
 #define UI_TCH_BAND(id, y, w)       ((void)0)
 #endif
 #ifdef VITA
-#include "ui_vita_style.h"           /* VitAdhoc's look (vstyle.h) */
+#include "ui_vita_style.h"           /* Retro Adhoc's look (vstyle.h) */
 #define UI_APP_NAME "Retro Adhoc"
 #else
 #define UI_APP_NAME "GBAdhoc"
@@ -197,7 +197,7 @@ typedef struct {
 #define THM_LT_DIM       0x8C71
 #endif
 #ifdef VITA
-/* VitAdhoc's dark theme is the home screen's navy (vita/ui_vita_style.h),
+/* Retro Adhoc's dark theme is the home screen's navy (vita/ui_vita_style.h),
  * not black: the game's blacks stand out of it, and every page, old and
  * new, is one family. */
 static const ui_theme THM_DARK = {
@@ -410,7 +410,7 @@ enum { SCR_MENU, SCR_SETTINGS, SCR_WIRELESS, SCR_SCAN, SCR_MGIFT,
         * are never entered.  SCR_CHEATS is the Vita's own cheats page there
         * (the PSP's is compiled only with GPSP_CHEATS). */
        , SCR_JOIN, SCR_ADDR, SCR_ADHOC, SCR_LOCAL, SCR_CONN, SCR_HELP,
-       SCR_CHEAT_ADD, SCR_RA
+       SCR_CHEAT_ADD, SCR_RA, SCR_COREOPT
 #endif
      };
 
@@ -1145,7 +1145,7 @@ int ui_wake_menu(const uint16_t *frame, int frame_w, int frame_h,
 #ifdef VITA
       if (g_pcfg.theme != 1)
       {
-         /* VitAdhoc: the game as it was, dimmed; "Paused" and the game's
+         /* Retro Adhoc: the game as it was, dimmed; "Paused" and the game's
           * name in the middle; the two choices as pills under them. */
          char t[100], *par;
          float bx, w0, w1;
@@ -1347,7 +1347,7 @@ static void screen_to(int scr)
         "controls", "host", "join_ask", "cheats"
 #ifdef VITA
         , "join", "address", "adhoc", "local", "connection", "help",
-        "cheat_add"
+        "cheat_add", "ra", "core_options"
 #endif
       };
 #ifdef VITA
@@ -2282,6 +2282,11 @@ static const char *const CTL_UI_NAMES[CTL_NBUTTONS] = {
 };
 
 static ui_action screen_controls(unsigned edges, unsigned pad);
+#ifdef VITA
+static int co_available(void);
+static void co_open(void);
+static ui_action screen_coreopt(unsigned edges);
+#endif
 static ui_action screen_state_slots(unsigned edges);
 #ifdef GPSP_CHEATS
 static void cht_page_reset(void);
@@ -2332,10 +2337,10 @@ enum { SET_HDR_WL, SET_NAME, SET_CONN, SET_ROOM, SET_LINKMODE, SET_DELAY,
        SET_HDR_RA, SET_RA_ACCOUNT, SET_RA_HARDCORE, SET_RA_LIST,
        SET_HDR_LIB, SET_FOLDERS, SET_SORT, SET_SS,
        SET_HDR_THIS, SET_OWN_LOOK, SET_MOTION, SET_SENS, SET_REVERSE,
-       SET_LEVEL, SET_SUN,
+       SET_LEVEL, SET_SUN, SET_COREOPT,
        SET_HDR_CTL, SET_CONTROLS,
        SET_COUNT };
-#define SET_FIRST SET_NAME
+#define SET_FIRST SET_SCALE
 #else
 enum { SET_HDR_WL, SET_ROOM, SET_LINKMODE, SET_OSD, SET_SHARE, SET_JOIN,
        SET_FASTLINK,
@@ -2464,6 +2469,7 @@ static const struct { unsigned char header; const char *label; } set_rows[SET_CO
    { 0, "Direction" },
    { 0, "Level" },
    { 0, "Sunlight" },
+   { 0, "Core options" },
 #endif
 #ifdef REWIND
    /* Hold the Rewind button (Triangle unless remapped) and the game runs
@@ -2490,6 +2496,10 @@ static int linkmode_row_enabled(void);
 static int set_row_shown(int idx)
 {
 #ifdef VITA
+   /* The LINK SETUP section (Player name .. Join a share) is not offered:
+    * its rows keep their enum places so no other row moves. */
+   if (idx <= SET_JOIN)
+      return 0;
    if (idx == SET_HDR_LIB || idx == SET_SORT || idx == SET_FOLDERS ||
        idx == SET_SS)
       return g_ov_browse;
@@ -2498,6 +2508,8 @@ static int set_row_shown(int idx)
    if (idx == SET_HDR_RA || idx == SET_RA_LIST)
       return g_ov_browse ? idx == SET_HDR_RA
                          : ra_summary(NULL, NULL, NULL, NULL, NULL);
+   if (idx == SET_COREOPT)
+      return !g_ov_browse && co_available();
    if (idx >= SET_HDR_THIS && idx <= SET_SUN)
    {
       unsigned k = fe_host_sensor_kinds();
@@ -3457,7 +3469,7 @@ static const char *set_help(int id)
                                "(gba.png, gb.png, gbc.png or its name)."
                              : "Put a PNG in ux0:data/RetroAdhoc/overlays/ to "
                                "frame the game.";
-   case SET_SHOTDIR:  return "X: type a folder (ux0:pictures/VitAdhoc). "
+   case SET_SHOTDIR:  return "X: type a folder (ux0:pictures/RetroAdhoc). "
                              "Empty: screenshots/.";
    case SET_BLEND:    return g_pcfg.blend
              ? "Each frame mixes with the last, like the old LCD."
@@ -3553,6 +3565,7 @@ static const char *set_help(int id)
    case SET_SUN:      return "How much sunlight the cartridge's solar sensor "
                              "sees.";
 #endif
+   case SET_COREOPT:  return "The emulator core's own options, kept for every game on it.";
    case SET_CONTROLS: return "Which button does what, and the shortcuts.";
    default:           return "";
    }
@@ -3770,7 +3783,7 @@ static ui_action screen_settings(unsigned edges)
       {
          const char *d = ui_host_shot_dir();
          if (ui_text_open(TXT_SHOTDIR, "Screenshot folder (empty: the usual one)",
-                          d && d[0] ? d : "ux0:pictures/VitAdhoc", 63) != 0)
+                          d && d[0] ? d : "ux0:pictures/RetroAdhoc", 63) != 0)
             osd_toast("The keyboard is not available");
          edges &= ~PSP_CTRL_CROSS;
       }
@@ -3806,6 +3819,13 @@ static ui_action screen_settings(unsigned edges)
       settings_adjust(g_cursor, -1);
    if (edges & PSP_CTRL_RIGHT)
       settings_adjust(g_cursor, +1);
+#ifdef VITA
+   if ((edges & PSP_CTRL_CROSS) && g_cursor == SET_COREOPT)
+   {
+      co_open();
+      return screen_coreopt(0);       /* draw this frame as the new page */
+   }
+#endif
    if ((edges & PSP_CTRL_CROSS) && g_cursor == SET_CONTROLS)
    {
       screen_to(SCR_CONTROLS);
@@ -4091,6 +4111,9 @@ static ui_action screen_settings(unsigned edges)
          break;
       }
 #endif
+      case SET_COREOPT:
+         set_item(y, g_cursor == i, 1, set_rows[i].label, "open");
+         break;
       case SET_CONTROLS:
          set_item(y, g_cursor == i, 1, set_rows[i].label,
              ctl_is_default(&g_pcfg.controls)
@@ -4292,7 +4315,7 @@ static ui_action screen_settings(unsigned edges)
    vid_text(22, SET_HELP_Y, set_help(g_cursor), C_DIM);
    footer(g_cursor == SET_LEVEL
           ? VID_GLYPH_X " set level now   DPAD move   " VID_GLYPH_O " back"
-          : g_cursor == SET_NAME || g_cursor == SET_CONTROLS
+          : g_cursor == SET_COREOPT || g_cursor == SET_CONTROLS
           ? VID_GLYPH_X " open   DPAD move   " VID_GLYPH_O " back"
           : g_cursor == SET_COVERS
           ? VID_GLYPH_X " retry missing   DPAD move   " VID_GLYPH_O " back"
@@ -6298,6 +6321,7 @@ static char g_menu_note[80];         /* the menu's plate, until the next key */
 
 #include "ui_vita_play.h"
 #include "ui_vita_cheats.h"
+#include "ui_vita_coreopts.h"
 #include "ui_vita_ra.h"
 #include "ui_vita_menu.h"
 #else
@@ -6315,7 +6339,7 @@ static ui_action screen_menu(unsigned edges, int session_active)
    static const char *labels[M_COUNT] = {
 #ifdef VITA
       "Resume", "Save states", "Play together", "Cheats", "Settings",
-      "Quit to game list", "Exit VitAdhoc"
+      "Quit to game list", "Exit Retro Adhoc"
 #else
       "Resume", "Save states", "Wireless", "Settings",
 #ifdef GPSP_CHEATS
@@ -7195,6 +7219,9 @@ ui_action ui_frame(unsigned pad, int session_active, const char *session_info)
       break;
    case SCR_RA:
       act = screen_ra(edges);
+      break;
+   case SCR_COREOPT:
+      act = screen_coreopt(edges);
       break;
 #else
    case SCR_WIRELESS:
@@ -10227,7 +10254,7 @@ void ui_loading_update(const char *stage, unsigned done, unsigned total)
 #ifdef VITA
    if (g_pcfg.theme != 1)
    {
-      /* VitAdhoc's loading screen: the game's art (or its console's glow),
+      /* Retro Adhoc's loading screen: the game's art (or its console's glow),
        * its name large in the middle, a rounded bar, the dots turning. */
       char title[96], *par;
       int i, phase = (int)((now / 90000u) % 8u);

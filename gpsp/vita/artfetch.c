@@ -614,7 +614,7 @@ static int http_get(const char *path, size_t *len)
       goto out;
    }
    snprintf(req, sizeof(req),
-            "GET %s HTTP/1.1\r\nHost: %s\r\nUser-Agent: VitAdhoc\r\n"
+            "GET %s HTTP/1.1\r\nHost: %s\r\nUser-Agent: RetroAdhoc\r\n"
             "Accept: image/png\r\nConnection: close\r\n\r\n", path, g_host);
    if (send(s, req, strlen(req), 0) != (ssize_t)strlen(req))
       goto out;
