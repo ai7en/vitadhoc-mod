@@ -265,7 +265,7 @@ static struct
                                * RetroAchievements server (the twin's
                                * tests; "" = retroachievements.org)    */
 } g_sw = { PACE_VSYNC, 1, 0, 0, 1, 1, 0, -1, -1, 0, 0, 0, 0, 1, 2, -1, 1, 1,
-           "", 0, 2, 1, 0, 0, 0, 0, 0, 3, 2, 1, 1, 5, 1, 0, 8, 14000, "", "" };
+           "", 0, 2, 1, 0, 0, 0, 0, 0, 3, 2, 1, 1, 5, 1, 1, 8, 14000, "", "" };
 
 /* vita.ini core_phase: the core's per-phase split of a frame (main.h,
  * "Phase 5h").  Declared here, not through the core's main.h (the whole
@@ -1290,7 +1290,7 @@ static void read_switches(void)
       g_sw.render_thread = 1;
    g_sw.gpu_xbrz        = (int)fe_ini_get_int(ini, "gpu_xbrz", 0) ? 1 : 0;
    g_sw.gpu_fx          = (int)fe_ini_get_int(ini, "gpu_fx", 1) ? 1 : 0;
-   g_sw.video_uv_swap   = (int)fe_ini_get_int(ini, "video_uv_swap", 0) ? 1 : 0;
+   g_sw.video_uv_swap   = (int)fe_ini_get_int(ini, "video_uv_swap", 1) ? 1 : 0;
    g_sw.video_stride    = (int)fe_ini_get_int(ini, "video_stride", 8);
    g_sw.gpu_fx_limit    = (int)fe_ini_get_int(ini, "gpu_fx_limit_us", 14000);
    g_sw.gpu_time        = (int)fe_ini_get_int(ini, "gpu_time", 0) ? 1 : 0;

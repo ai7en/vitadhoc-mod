@@ -25,7 +25,7 @@ struct av_player
    unsigned logged;
 };
 
-static int g_uv_swap, g_stride_align = 8;
+static int g_uv_swap = 1, g_stride_align = 8;
 static int g_module;               /* 1 loaded, -1 failed                  */
 
 void av_set_options(int uv_swap, int stride_align)

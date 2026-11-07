@@ -7,8 +7,8 @@
  * Without SceAvPlayer (the twin, a module that does not load) av_open
  * returns NULL and the game keeps its still picture.
  *
- * vita.ini: video_uv_swap = 1 reads the chroma plane as UV instead of VU
- * (the colours come out blue-for-red when the guess is wrong);
+ * vita.ini: video_uv_swap = 0 reads the chroma plane as VU instead of UV (1, the default,
+ * is right on the console: with VU the colours came out blue-for-red);
  * video_stride = 8 | 16 | 32 is the alignment of a frame's rows (a picture
  * that comes out sheared has a different one). */
 #ifndef GBADHOC_AVCLIP_VITA_H

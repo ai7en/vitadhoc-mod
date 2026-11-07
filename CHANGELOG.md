@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Video previews read the chroma plane as UV: with VU the colours came out blue (`video_uv_swap`
+  in vita.ini, now 1 by default).
 - Video previews: the clip of the last play comes first and the scraped video plays for games
   without one (the video's player handle was taken for an error, so no video ever opened).
 - The LCD shader looks run in two passes like the CRT (picture-size work once, the grid and
