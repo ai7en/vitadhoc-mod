@@ -9,6 +9,7 @@ typedef struct clip_preview_frame
    uint32_t token;
    unsigned w, h, ticks, us_per_tick, frames, sequence;
    int ended, bad;
+   int video;               /* a scraped video: ticks are milliseconds */
    const uint16_t *pixels;
    unsigned slot;
 } clip_preview_frame;

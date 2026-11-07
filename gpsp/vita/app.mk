@@ -52,6 +52,7 @@ APP_SRCS      += rewind_vita.c
 # the game list's previews: the last ten seconds played (clip_vita.h)
 APP_SRCS      += clip_vita.c
 APP_SRCS      += preview_vita.c
+APP_SRCS      += avclip_vita.c
 APP_SRCS      += menu_diag.c
 APP_SRCS      += menu_load.c menu_files.c
 # what the game list knows about a cartridge (names, blurbs) and its box art
@@ -80,7 +81,7 @@ APP_SRCS_VITA := plat_vita.c jit_vita.c heap_vita.c
 APP_SRCS_HOST := hostcore/plat_host.c
 APP_DEFS      := -DVITA -DRC_NO_THREADS
 APP_INCDIRS   := third_party/rcheevos/include third_party/rcheevos/src
-APP_LIBS_VITA := -lSceHttp_stub -lSceSsl_stub
+APP_LIBS_VITA := -lSceHttp_stub -lSceSsl_stub -lSceAvPlayer_stub -lSceSysmodule_stub
 VPK_EXTRA     :=
 
 VPK_EXTRA     += assets/gamedb.txt=gamedb.txt

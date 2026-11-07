@@ -611,18 +611,21 @@ static struct
    unsigned us_per_tick;
    uint32_t token;
    int ended;
+   int vid;                 /* the preview is a scraped video, not a clip   */
 } g_hm_clip = { .rom = -1, .none_for = -1, .shown = -1 };
 
 static uint32_t g_hm_clip_serial;
 static int g_hm_clip_selection = -1;
 static int g_hm_clip_disabled;
 
-static int hm_clip_path(int rom, char *out, size_t cap)
+/* video: videos/<game>.mp4 (what ScreenScraper brought), else the clip of
+ * the last play.  The worker finds out whether the file is there. */
+static int hm_clip_path(int rom, char *out, size_t cap, int video)
 {
    extern char g_dir_base[];
    const char *base = g_roms[rom].base;
-   int n = snprintf(out, cap, "%s/clips/%.*s.clip", g_dir_base,
-                    (int)ui_rom_stem_length(base), base);
+   int n = snprintf(out, cap, video ? "%s/videos/%.*s.mp4" : "%s/clips/%.*s.clip",
+                    g_dir_base, (int)ui_rom_stem_length(base), base);
    return n > 0 && (size_t)n < cap ? 0 : -1;
 }
 
@@ -675,21 +678,27 @@ static void hm_selection_tick(int rom)
       (void)clip_preview_start();
 }
 
-static void hm_clip_open(int rom)
+static void hm_clip_open2(int rom, int video)
 {
    char path[PSP_FILE_PATH_CAP];
    hm_clip_cancel();
-   if (hm_clip_path(rom, path, sizeof(path)) != 0 ||
+   if (hm_clip_path(rom, path, sizeof(path), video) != 0 ||
        clip_preview_request(g_hm_clip.token, path) != 0)
    {
       g_hm_clip.none_for = rom;
       return;
    }
    g_hm_clip.rom = rom;
+   g_hm_clip.vid = video;
    g_hm_clip.phase = HC_PLAY;
    g_hm_clip.acc_us = 0;
    g_hm_clip.last_us = sceKernelGetSystemTimeLow();
    fe_evt("home_clip_request rom=%d token=%u path=%s", rom, g_hm_clip.token, path);
+}
+
+static void hm_clip_open(int rom)
+{
+   hm_clip_open2(rom, 1);        /* the scraped video first, then the clip */
 }
 
 static int hm_clip_textures(unsigned w, unsigned h)
@@ -765,6 +774,12 @@ static void hm_clip_tick(int rom, int idle)
          clip_preview_release(g_hm_clip.next.slot);
          g_hm_clip.have_next = 0;
          g_hm_clip.ended = 1;
+         if (bad && g_hm_clip.vid && g_hm_clip.shown < 0)
+         {
+            /* no video (or one that does not play): the last play's clip */
+            hm_clip_open2(rom, 0);
+            return;
+         }
          if (bad)
          {
             hm_clip_cancel();
@@ -904,8 +919,20 @@ static void hm_backdrop(int rom, float dy)
    }
    /* the preview, over the still it ends on */
    if (g_hm_clip.rom == rom && g_hm_clip.shown >= 0)
-      hm_scene_draw(g_hm_clip.tex[g_hm_clip.shown], (int)g_hm_clip.w,
-                    (int)g_hm_clip.h, g_hm_clip.a, dy);
+   {
+      if (g_hm_clip.vid)
+      {
+         /* a video: whole, 440 high, against the right edge */
+         float vh = 440.0f, vw = vh * (float)g_hm_clip.w / (float)(g_hm_clip.h ? g_hm_clip.h : 1);
+         if (g_hm_clip.a > 0.5f)
+            vs_img_draw(g_hm_clip.tex[g_hm_clip.shown], VS_W - vw - 24.0f,
+                        (VS_H - vh) * 0.5f - 10.0f + dy * 0.35f, vw, vh,
+                        VS_HEX(0xFFFFFF, (int)g_hm_clip.a), 1);
+      }
+      else
+         hm_scene_draw(g_hm_clip.tex[g_hm_clip.shown], (int)g_hm_clip.w,
+                       (int)g_hm_clip.h, g_hm_clip.a, dy);
+   }
    /* veils: dark under the words on the left, under the row at the top and
     * under the buttons at the bottom -- lifted a little on the right while
     * a preview plays, so that it comes forward */

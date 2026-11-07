@@ -5,6 +5,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include "clip_vita.h"
+#include "avclip_vita.h"
 #include "preview_vita.h"
 #include "plat.h"
 
@@ -24,7 +25,7 @@ typedef struct pv_slot
 {
    int state;
    clip_preview_frame frame;
-   uint16_t pixels[CLIP_W_MAX * CLIP_H_MAX];
+   uint16_t pixels[AV_W_MAX * AV_H_MAX];   /* a clip is at most 256 x 224 */
 } pv_slot;
 
 static pv_request *g_pending;
@@ -129,10 +130,71 @@ static int pv_claim(void)
    return -1;
 }
 
+static int pv_is_video(const char *path)
+{
+   size_t n = strlen(path);
+   return n > 4 && !strcmp(path + n - 4, ".mp4");
+}
+
+/* A scraped video: the player keeps the time, this takes the frame that is
+ * due into a slot (ticks are milliseconds here: us_per_tick = 1000), or
+ * drops it when the home screen has not taken the last two. */
+static void pv_video_step(pv_request *job, av_player *vid, unsigned *sequence,
+                          int *terminal)
+{
+   unsigned w = 0, h = 0, delay = 0;
+   int slot = pv_claim(), rc;
+   pv_slot *result = slot >= 0 ? &g_slots[slot] : NULL;
+   uint64_t t = plat_time_us();
+   pv_phase(CLIP_DIAG_DECODE, job->token);
+   rc = av_next(vid, result ? result->pixels : NULL, &w, &h, &delay);
+   pv_cost(&g_decode_us, t);
+   if (rc == AV_NONE || (rc == AV_FRAME && !result) ||
+       job->token != PV_LOAD(g_wanted) || PV_LOAD(g_quit))
+   {
+      if (result)
+         PV_STORE(result->state, PV_FREE);
+      if (rc == AV_FRAME && !result)
+         __atomic_add_fetch(&g_stale, 1, __ATOMIC_RELAXED);
+      pv_wait();
+      return;
+   }
+   if (!result)
+   {
+      pv_wait();
+      return;
+   }
+   memset(&result->frame, 0, sizeof(result->frame));
+   result->frame.token = job->token;
+   result->frame.w = w;
+   result->frame.h = h;
+   result->frame.ticks = delay;
+   result->frame.us_per_tick = 1000;
+   result->frame.sequence = (*sequence)++;
+   result->frame.ended = rc != AV_FRAME;
+   result->frame.bad = rc == AV_BAD;
+   result->frame.video = 1;
+   result->frame.slot = (unsigned)slot;
+   result->frame.pixels = rc == AV_FRAME ? result->pixels : NULL;
+   PV_STORE(result->state, PV_READY);
+   __atomic_add_fetch(&g_published, 1, __ATOMIC_RELAXED);
+   if (rc == AV_BAD) __atomic_add_fetch(&g_bad, 1, __ATOMIC_RELAXED);
+   if (job->token != PV_LOAD(g_wanted))
+   {
+      int ready = PV_READY;
+      if (__atomic_compare_exchange_n(&result->state, &ready, PV_FREE, 0,
+                                       __ATOMIC_ACQ_REL, __ATOMIC_ACQUIRE))
+         __atomic_add_fetch(&g_stale, 1, __ATOMIC_RELAXED);
+   }
+   if (rc != AV_FRAME)
+      *terminal = 1;
+}
+
 static void pv_run(void)
 {
    pv_request *job = NULL;
    clip_player *player = NULL;
+   av_player *vid = NULL;
    unsigned sequence = 0;
    int terminal = 0;
    while (!PV_LOAD(g_quit))
@@ -146,7 +208,9 @@ static void pv_run(void)
       {
          pv_phase(CLIP_DIAG_CLOSE, job ? job->token : 0);
          clip_close(player);
+         av_close(vid);
          player = NULL;
+         vid = NULL;
          free(job);
          job = next;
          sequence = 0;
@@ -155,15 +219,24 @@ static void pv_run(void)
          {
             uint64_t t = plat_time_us();
             pv_phase(CLIP_DIAG_OPEN, job->token);
-            player = clip_open(job->path);
+            if (pv_is_video(job->path))
+               vid = av_open(job->path);
+            else
+               player = clip_open(job->path);
             pv_cost(&g_open_us, t);
          }
       }
       if (__atomic_exchange_n(&g_restart, 0, __ATOMIC_ACQ_REL) ==
-          (job ? job->token : 0) && job && player && terminal &&
+          (job ? job->token : 0) && job && (player || vid) && terminal &&
           job->token == PV_LOAD(g_wanted))
       {
-         clip_restart(player);
+         if (vid)
+         {
+            av_close(vid);
+            vid = av_open(job->path);
+         }
+         else
+            clip_restart(player);
          sequence = 0;
          terminal = 0;
       }
@@ -171,6 +244,11 @@ static void pv_run(void)
       {
          pv_phase(CLIP_DIAG_IDLE, job ? job->token : 0);
          pv_wait();
+         continue;
+      }
+      if (vid)
+      {
+         pv_video_step(job, vid, &sequence, &terminal);
          continue;
       }
       slot = pv_claim();
@@ -237,6 +315,7 @@ static void pv_run(void)
          terminal = 1;
    }
    clip_close(player);
+   av_close(vid);
    free(job);
    free(__atomic_exchange_n(&g_pending, NULL, __ATOMIC_ACQ_REL));
    PV_STORE(g_done, 1);
@@ -269,7 +348,7 @@ int clip_preview_start(void)
    if (g_wake < 0)
       goto fail;
    g_thread = sceKernelCreateThread("gbadhoc_preview", pv_entry, 0xB8,
-                                    0x10000, 0, 0, NULL);
+                                    0x20000, 0, 0, NULL);
    if (g_thread < 0 || sceKernelStartThread(g_thread, 0, NULL) < 0)
    {
       if (g_thread >= 0)

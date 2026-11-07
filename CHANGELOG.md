@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+- Video previews: a game's scraped video (`videos/<game>.mp4`) plays on its card in the game list
+  where the clip of the last play would (the clip is still used for games without a video).
+  The system's SceAvPlayer decodes it; the sound is not played. `video_uv_swap` and `video_stride`
+  in vita.ini fix wrong colours or a sheared picture.
 - The CRT shader looks no longer cut the picture's corners round.
 - The speed guard lets the LCD / CRT shader looks take up to 14 ms of GPU time a frame (the CRT
   measures 12.2 ms on a Vita); `gpu_fx_limit_us` in vita.ini changes the limit.
