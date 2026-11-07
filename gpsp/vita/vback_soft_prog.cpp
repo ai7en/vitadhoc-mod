@@ -160,6 +160,12 @@ static float4 fx_crt(float2 vTexcoord, const sampler2D &Source, float4 U0,
 #include "shaders/fx_crt.inc"
 }
 
+static float4 fx_crta(float2 vTexcoord, const sampler2D &Source, float4 U0,
+                      float4 U1, float4 U2, float4 U3, float4 U4, float4 U5)
+{
+#include "shaders/fx_crta.inc"
+}
+
 static uint32_t pack(float4 c)
 {
    float ch[4] = { c.x, c.y, c.z, c.w };
@@ -193,6 +199,7 @@ extern "C" uint32_t vbsp_run(int which, const uint32_t *t0, int w0, int h0,
       float4 u4(uni[4][0], uni[4][1], uni[4][2], uni[4][3]);
       float4 u5(uni[5][0], uni[5][1], uni[5][2], uni[5][3]);
       return pack(which == 3 ? fx_lcd(float2(u, v), s0, u0, u1, u2, u3, u4, u5)
+                : which == 5 ? fx_crta(float2(u, v), s0, u0, u1, u2, u3, u4, u5)
                              : fx_crt(float2(u, v), s0, u0, u1, u2, u3, u4, u5));
    }
    if (which == 0)

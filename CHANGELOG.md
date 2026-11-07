@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+- Fixed: after TRIANGLE the ScreenScraper chooser ignored every key (O and X included) and the
+  game list stayed frozen.
+- CRT shaders run in two passes: the dither merge, ghost and colour are drawn once at the picture's
+  size, and the screen-size pass reads that picture once for the grid and mask. The speed guard
+  now judges LCD and CRT separately, so switching CRT off no longer disables the LCD looks.
+
 - ScreenScraper chooser: TRIANGLE asks how to scrape, by the file (automatic) or by a name you type,
   then lists the games found so you can pick the right one.
 - LCD / CRT shaders are specialised on their preset (U2..U4 become constants in the shader), and a

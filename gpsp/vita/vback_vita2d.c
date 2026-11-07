@@ -758,16 +758,17 @@ static char g_prog_why[VB_PROGS][384];
 static int  g_shacc;                          /* 0 untried, 1 ok, -1 not */
 
 static const char *const g_prog_name[VB_PROGS] = { "xbrz0", "xbrz1", "xbrz2",
-                                                          "fxlcd", "fxcrt" };
+                                                          "fxlcd", "fxcrt", "fxcrta" };
 static const char *const g_prog_uni[VB_PROGS][VB_PROG_UNIFORMS] = {
    { "SourceSize", NULL, NULL, NULL },
    { "SourceSize", "CornerInv", NULL, NULL },
    { "RefSize", "InfoScale", "OutScale", NULL },
    { "U0", "U1", "U2", "U3", "U4", "U5" },
+   { "U0", "U1", "U2", "U3", "U4", "U5" },
    { "U0", "U1", "U2", "U3", "U4", "U5" } };
 static const char *const g_prog_tex[VB_PROGS][2] = {
    { "Source", NULL }, { "Source", "Corner" }, { "Ref", "Info" },
-   { "Source", NULL }, { "Source", NULL } };
+   { "Source", NULL }, { "Source", NULL }, { "Source", NULL } };
 
 /* The Cg half of the shaders' dialect (shaders/xbrz_common.inc). */
 static const char g_prelude_cg[] =
@@ -975,7 +976,8 @@ static char *prog_text(int which)
    if (which >= VB_PROG_FX_LCD)
    {
       common = gpu_src_fx_common;
-      body = which == VB_PROG_FX_LCD ? gpu_src_fx_lcd : gpu_src_fx_crt;
+      body = which == VB_PROG_FX_LCD ? gpu_src_fx_lcd
+          : which == VB_PROG_FX_CRTA ? gpu_src_fx_crta : gpu_src_fx_crt;
       mainf = g_fold_on[which] ? g_main_fx_fold : g_main_fx;
    }
    else

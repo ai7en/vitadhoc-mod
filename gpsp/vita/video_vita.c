@@ -1366,7 +1366,8 @@ static int      g_gx_sampling, g_gx_slow;
 static unsigned g_gx_mark, g_gx_samples, g_gx_avg, g_gx_max;
 
 static int g_fx_on = 1;        /* vid_set_gpu_fx                            */
-static int g_fx_state;         /* the shader looks: as g_gx_state           */
+static int g_fx_state[2];      /* the shader looks (LCD, CRT): as g_gx_state */
+static int fx_kind_of(int f) { return f <= VID_FILTER_LCD_WORN ? 0 : 1; }
 static int fx_filter(int f) { return f >= VID_FILTER_LCD_RGB; }
 
 void vid_set_gpu_xbrz(int on)
@@ -1387,11 +1388,12 @@ void vid_set_gpu_time(int on)
 
 /* After each present (vid_swap). */
 static int g_base;             /* after an fx is switched off: 1 wait, 2 sampling */
+static unsigned g_base_wait;
 
 static void gx_guard(void)
 {
    unsigned n, avg, mx;
-   int *st = fx_filter(g_filter) ? &g_fx_state : &g_gx_state;
+   int *st = fx_filter(g_filter) ? &g_fx_state[fx_kind_of(g_filter)] : &g_gx_state;
    const char *kind = fx_filter(g_filter) ? "fx" : "xbrz";
    if (g_gx_always)
    {
@@ -1408,7 +1410,7 @@ static void gx_guard(void)
    if (g_base)
    {
       /* what the same frame costs without the fx, as the yardstick */
-      if (g_base == 1 && g_gx_frames - g_gx_mark >= 30)
+      if (g_base == 1 && ++g_base_wait >= 30)
       {
          vb_gpu_time(8);
          g_base = 2;
@@ -1444,6 +1446,9 @@ static void gx_guard(void)
          fe_evt("gpu_%s off reason=slow gpu_us=%u filter=%s", kind, avg,
                 vid_filter_name(g_filter));
          g_base = 1;
+         g_base_wait = 0;
+         g_gx_slow = 0;
+         g_gx_sampling = 0;
       }
       return;
    }
@@ -1631,19 +1636,30 @@ static int gx_draw(vb_tex *t, unsigned w, unsigned h, const vid_geo *g)
  * grid / scanlines for the session if the GPU needs over GX_SLOW_US a frame.
  * vita.ini gpu_fx = 0 keeps them on the CPU's stand-ins. */
 static int g_fx_kind[2];       /* LCD, CRT: 0 untried, 1 ok, -1 not        */
+#define FX_RT_W 512            /* the CRT's pass A target: the widest picture */
+#define FX_RT_H 256
+static vb_tex *g_fx_rt;
 static int fx_ready(void)
 {
    const int k = g_filter <= VID_FILTER_LCD_WORN ? 0 : 1;
-   if (!g_fx_on || !fx_filter(g_filter) || g_quality != 0 || g_fx_state < 0)
+   if (!g_fx_on || !fx_filter(g_filter) || g_quality != 0 || g_fx_state[k] < 0)
       return 0;
    if (!g_fx_kind[k])
    {
       const unsigned t0 = pspcompat_time_us();
       const int which = k ? VB_PROG_FX_CRT : VB_PROG_FX_LCD;
       vb_prog *a = vb_prog_get(which);
+      if (a && k)
+      {
+         /* the CRT is two programs and a render target of the picture's size */
+         if (!g_fx_rt)
+            g_fx_rt = vb_tex_create(FX_RT_W, FX_RT_H, VB_FMT_RGBA8, 1);
+         if (!vb_prog_get(VB_PROG_FX_CRTA) || !g_fx_rt)
+            a = NULL;
+      }
       g_fx_kind[k] = a ? 1 : -1;
       if (a)
-         g_fx_state = 1;
+         g_fx_state[k] = 1;
       fe_evt("gpu_fx %s ok=%d why=%s us=%u", k ? "crt" : "lcd", a != NULL,
              vb_prog_status(which), pspcompat_time_us() - t0);
    }
@@ -1652,7 +1668,7 @@ static int fx_ready(void)
 
 int vid_gpu_fx(void)
 {
-   return g_fx_state > 0 && g_fx_on && fx_filter(g_filter) &&
+   return g_fx_state[fx_kind_of(g_filter)] > 0 && g_fx_on && fx_filter(g_filter) &&
           g_fx_kind[g_filter <= VID_FILTER_LCD_WORN ? 0 : 1] > 0;
 }
 
@@ -1713,8 +1729,13 @@ static void fx_prefold(void)
       return;
    memset(u, 0, sizeof(u));
    fx_consts(g_filter, u);
-   vb_prog_fold(g_filter <= VID_FILTER_LCD_WORN ? VB_PROG_FX_LCD
-                                               : VB_PROG_FX_CRT, u);
+   if (g_filter <= VID_FILTER_LCD_WORN)
+   {
+      vb_prog_fold(VB_PROG_FX_LCD, u);
+      return;
+   }
+   vb_prog_fold(VB_PROG_FX_CRT, u);
+   vb_prog_fold(VB_PROG_FX_CRTA, u);
 }
 
 static int fx_draw(vb_tex *t, unsigned w, unsigned h, const vid_geo *g)
@@ -1724,7 +1745,9 @@ static int fx_draw(vb_tex *t, unsigned w, unsigned h, const vid_geo *g)
    const int f = g_filter;
    const int lcd = f <= VID_FILTER_LCD_WORN;
    vb_prog *p = vb_prog_get(lcd ? VB_PROG_FX_LCD : VB_PROG_FX_CRT);
-   if (!p || !w || !h || g->sh <= 0)
+   vb_prog *pa = lcd ? NULL : vb_prog_get(VB_PROG_FX_CRTA);
+   if (!p || !w || !h || g->sh <= 0 || (!lcd && (!pa || !g_fx_rt)) ||
+       (!lcd && (w > FX_RT_W || (unsigned)g->sh > FX_RT_H)))
       return 0;
    memset(u, 0, sizeof(u));
    u[0][0] = (float)w; u[0][1] = (float)g->sh;
@@ -1748,12 +1771,33 @@ static int fx_draw(vb_tex *t, unsigned w, unsigned h, const vid_geo *g)
          }
       }
    }
+   if (!lcd)
+   {
+      /* pass A: the picture's own pixels, 1:1 into the target (the work that
+       * does not depend on the screen's size: dither merge, ghost, colour) */
+      q.x0 = 0; q.y0 = 0; q.x1 = (float)w; q.y1 = (float)g->sh;
+      q.u0 = 0; q.v0 = (float)g->sy0;
+      q.u1 = (float)w; q.v1 = (float)(g->sy0 + g->sh);
+      vb_rt_begin(g_fx_rt);
+      vb_pquads(pa, t, NULL, &q, 1, u);
+      vb_rt_end();
+   }
    backdrop_draw(geo_covers(g));
    q.x0 = (float)g->ox; q.y0 = (float)g->oy;
    q.x1 = (float)(g->ox + g->dw); q.y1 = (float)(g->oy + g->dh);
-   q.u0 = 0; q.v0 = (float)g->sy0;
-   q.u1 = (float)w; q.v1 = (float)(g->sy0 + g->sh);
-   vb_pquads(p, t, NULL, &q, 1, u);
+   if (lcd)
+   {
+      q.u0 = 0; q.v0 = (float)g->sy0;
+      q.u1 = (float)w; q.v1 = (float)(g->sy0 + g->sh);
+      vb_pquads(p, t, NULL, &q, 1, u);
+   }
+   else
+   {
+      /* pass B: the target's picture at the screen's size, the grid and mask */
+      u[5][0] = (float)FX_RT_W; u[5][1] = (float)FX_RT_H; u[5][2] = 0.0f;
+      q.u0 = 0; q.v0 = 0; q.u1 = (float)w; q.v1 = (float)g->sh;
+      vb_pquads(p, g_fx_rt, NULL, &q, 1, u);
+   }
    g_gx_frames++;
    return 1;
 }

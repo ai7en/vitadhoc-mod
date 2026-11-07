@@ -193,9 +193,13 @@ void vb_gpu_stats(unsigned *frames, unsigned *avg_us, unsigned *max_us);
 /* VB_PROG_FX_LCD / VB_PROG_FX_CRT: the whole LCD / CRT picture filter in one
  * pass (shaders/fx_*.inc): unit 0 = the picture's texture, LINEAR sampled
  * (edges clamped); uniforms [0]..[5] as fx_common.inc and fx_lcd.inc /
- * fx_crt.inc say.  Drawn at the final size. */
+ * fx_crt.inc say.  Drawn at the final size.
+ * VB_PROG_FX_CRTA is the CRT's first pass (fx_crta.inc), drawn 1:1 into a
+ * render target at the picture's size; VB_PROG_FX_CRT then reads that target
+ * (unit 0) instead of the picture. */
 enum { VB_PROG_XBRZ0 = 0, VB_PROG_XBRZ1 = 1, VB_PROG_XBRZ2 = 2,
-       VB_PROG_FX_LCD = 3, VB_PROG_FX_CRT = 4, VB_PROGS };
+       VB_PROG_FX_LCD = 3, VB_PROG_FX_CRT = 4, VB_PROG_FX_CRTA = 5,
+       VB_PROGS };
 enum { VB_PROG_UNIFORMS = 6 };
 typedef struct vb_prog vb_prog;
 vb_prog    *vb_prog_get(int which);

@@ -12214,8 +12214,11 @@ int ui_browser(const char *rom_dir, char *out, size_t out_sz,
             }
             if (g_ssp.mode && !find_owns_input)
             {
-               pd.Buttons = edges = 0;     /* the chooser keeps every key */
-               g_prev_pad = 0xFFFFFFFFu;
+               /* the chooser keeps every key.  g_prev_pad is left alone:
+                * pad_edges() stores the held keys each frame, and setting it
+                * to all ones here made every later press look held, so O and
+                * X never reached the chooser again. */
+               pd.Buttons = edges = 0;
                tch_reset();
                g_tch.down = g_tch.dead = 1;
                idle = 0;
