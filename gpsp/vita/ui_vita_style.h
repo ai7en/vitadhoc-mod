@@ -87,6 +87,16 @@ static void hm_battery(float x, float y)
       vs_icon(VS_I_FAST, x - 16, y + 9.5f, 18, VS_ALPHA(c, 200));
 }
 
+/* Where hm_status would begin, without drawing it. */
+static float hm_status_x(float xr)
+{
+   char clock[8];
+   int hh = 0, mm = 0;
+   pspcompat_clock(&hh, &mm);
+   snprintf(clock, sizeof(clock), "%d:%02d", hh, mm);
+   return xr - 40 - 16 - vs_text_w(VS_LABEL, clock);
+}
+
 /* The time and the battery, ending at xr; returns where they begin. */
 static float hm_status(float xr, float y)
 {

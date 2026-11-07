@@ -2510,6 +2510,15 @@ static int set_row_shown(int idx)
                          : ra_summary(NULL, NULL, NULL, NULL, NULL);
    if (idx == SET_COREOPT)
       return !g_ov_browse && co_available();
+   /* Interface and gameplay settings belong to the home screen's Settings,
+    * not to the quick menu of a running game. */
+   if (idx >= SET_HDR_UI && idx <= SET_SPEED && !g_ov_browse)
+      return 0;
+   /* A Game Boy palette, a Super Game Boy border and the GBA/GBC colour
+    * correction mean nothing to the libretro consoles. */
+   if ((idx == SET_GBPAL || idx == SET_SGB || idx == SET_COLOR) &&
+       fe_console_is_retro(pcfg_display_console()))
+      return 0;
    if (idx >= SET_HDR_THIS && idx <= SET_SUN)
    {
       unsigned k = fe_host_sensor_kinds();

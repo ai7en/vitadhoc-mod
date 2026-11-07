@@ -989,6 +989,11 @@ static float hm_topbar(float dy, int n_scan)
               (int)((x + 26 - cx) / 2) + 4, 22);
 
    /* the right: settings, the time, the battery */
+   {
+      /* one glass pill under search, settings, the time and the battery */
+      float left = hm_status_x(VS_W - HM_X) - 102.0f;
+      vs_rrect(left, y + 2, VS_W - HM_X + 22 - left, 34, 17, HC_GLASS_HI);
+   }
    x = hm_status(VS_W - HM_X, y);
    vs_icon(VS_I_GEAR, x - 30, y + 19, 26, HC_TEXT2);
    VS_TCH_BTN(PSP_CTRL_START, x - 50, y, 44, 44);
@@ -1106,17 +1111,15 @@ static void hm_row(const char *rom_dir, int cur, int n, float dy, int idle)
       if (k == 0)
       {
          float lw;
-         rom_display_name(&g_roms[rom], name, sizeof(name), 1);
-         vs_text_fit(VS_SUB, name, 300);
-         lw = vs_text_w(VS_SUB, name);
+         /* The name is under the row (hm_focus); beside the icon only the
+          * console is said. */
+         lw = 0;
          {
             const char *con = skin_of(g_pcfg.console)->full;
             float cw = vs_text_w(VS_BODY, con);
             int la = (int)g_hm_label_a;
             float ly = HM_ROW_Y + dy + HM_BIG * 0.5f;
-            vs_text(VS_SUB, t->x + t->s + 24, ly - 40, name,
-                    VS_HEX(0xF5F7FC, la));
-            vs_text(VS_BODY, t->x + t->s + 24, ly + 4, con,
+            vs_text(VS_BODY, t->x + t->s + 24, ly - 12, con,
                     VS_HEX(0xA7B0C6, la));
             if (cw > lw)
                lw = cw;
@@ -1136,6 +1139,53 @@ static int g_hm_states_n;             /* how many slots hold a state       */
 
 /* The focused game's lines from gamedb.h, looked up once per game: by its
  * file name, else (GBA) by the No-Intro name of its header's code. */
+/* The pad's keys, in one glass pill at the right of the buttons: a button
+ * face or a key cap, and what it does.  Items that do not fit beside the
+ * buttons are left out, last first.  Each is also a button for the finger. */
+static float g_hm_btn_end = HM_X + 300;
+
+static void hm_keybar(float y, float left)
+{
+   struct { int icon; const char *cap, *word; unsigned btn; } it[4] = {
+      { VS_I_BTN_O, NULL, g_find[0] ? "Clear search" : "Search",
+        BROWSER_FIND_BUTTON },
+      { VS_I_BTN_TRI, NULL, "Console", PSP_CTRL_TRIANGLE },
+      { -1, "START", "Settings", PSP_CTRL_START },
+      { -1, "SELECT", "Lists", PSP_CTRL_SELECT } };
+   float lead[4], w[4], total, x, avail = VS_W - HM_X - left - 24.0f;
+   int n = 4, i;
+   for (i = 0; i < 4; i++)
+   {
+      lead[i] = it[i].icon >= 0 ? 24.0f : vs_text_w(VS_CAPTION, it[i].cap) + 14.0f;
+      w[i] = lead[i] + 8.0f + vs_text_w(VS_CAPTION, it[i].word);
+   }
+   for (;;)
+   {
+      total = 36.0f;
+      for (i = 0; i < n; i++)
+         total += w[i] + (i ? 20.0f : 0.0f);
+      if (total <= avail || n <= 1)
+         break;
+      n--;
+   }
+   x = VS_W - HM_X - total;
+   vs_rrect(x, y + 6, total, 44, 22, HC_GLASS);
+   x += 18.0f;
+   for (i = 0; i < n; i++)
+   {
+      if (it[i].icon >= 0)
+         vs_icon(it[i].icon, x + 12, y + 28, 24, HC_TEXT);
+      else
+      {
+         vs_rrect(x, y + 17, lead[i], 22, 6, HC_GLASS_HI);
+         vs_text(VS_CAPTION, x + 7, y + 17, it[i].cap, HC_TEXT);
+      }
+      vs_text(VS_CAPTION, x + lead[i] + 8.0f, y + 17, it[i].word, HC_TEXT2);
+      VS_TCH_BTN(it[i].btn, x - 8, y + 6, w[i] + 16, 44);
+      x += w[i] + 20.0f;
+   }
+}
+
 static int g_hm_blurb_for = -1;
 static char g_hm_blurb[400];
 
@@ -1156,8 +1206,9 @@ static const char *hm_blurb(const char *rom_dir, int rom)
 static void hm_focus(const char *rom_dir, int rom, float dy, int idle)
 {
    char title[80], buf[48];
-   const char *blurb = idle >= IDLE_SELECTED ? hm_blurb(rom_dir, rom)
-      : g_hm_blurb_for == rom ? g_hm_blurb : "";
+   /* The game's Wikipedia lines are not shown: they lifted the name and the
+    * chips off their place. */
+   const char *blurb = "";
    float x, y = HM_TITLE_Y + dy - (blurb[0] ? HM_BLURB_LIFT : 0);
    int la = (int)g_hm_label_a;
 
@@ -1242,7 +1293,7 @@ static void hm_focus(const char *rom_dir, int rom, float dy, int idle)
       x = hm_button(x, y, VS_I_LAYERS, "Save states", 0, PSP_CTRL_DOWN);
    x = hm_button(x, y, g_roms[rom].is_fav ? VS_I_STAR : VS_I_STAR_O, NULL, 0,
                  PSP_CTRL_SQUARE);
-   (void)x;
+   g_hm_btn_end = x;
 }
 
 /* ---- the states, as cards ---------------------------------------------- */
@@ -1842,9 +1893,7 @@ static void shell_home(const char *rom_dir, int cur, int n, int n_scan,
    }
    else
    {
-      static const int ic[3] = { VS_I_BTN_O, VS_I_BTN_TRI, -1 };
-      const char *w[3] = { g_find[0] ? "Clear" : "Find", "Console", "START  Settings" };
-      hm_hints(VS_W - HM_X, HM_BTN_Y + dy + 16, ic, w, 3);
+      hm_keybar(HM_BTN_Y + dy, g_hm_btn_end);
    }
    (void)n_scan;
 }

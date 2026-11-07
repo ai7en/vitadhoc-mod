@@ -2,6 +2,9 @@
 
 ## Unreleased
 
+- Home screen: the game's Wikipedia lines and the name beside the icon are gone (the name stays under the row); search, settings, time and battery sit on one rounded plate; the key hints at the bottom right are a plate of button faces and key caps (Search, Console, Settings, Lists).
+- Settings in a running game no longer list Interface and Gameplay (they stay in the home screen's Settings); Genesis, NES and SNES no longer show GB palette, SGB border and Colours.
+
 - Settings: the Link Setup section is gone; the home screen's tap-to-open menu now answers a tap anywhere on the screen.
 - New Settings > THIS GAME > Core options: the options of the Genesis, NES and SNES cores, kept in `ux0:data/RetroAdhoc/cores/<console>.ini`.
 - Game loading: older-version save probing is skipped for the libretro consoles; the log now lists `launch_prep` and `retro_boot_time` stage times.
