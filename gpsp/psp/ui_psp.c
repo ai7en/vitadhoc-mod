@@ -2516,7 +2516,8 @@ static int set_row_shown(int idx)
       return 0;
    /* A Game Boy palette, a Super Game Boy border and the GBA/GBC colour
     * correction mean nothing to the libretro consoles. */
-   if ((idx == SET_GBPAL || idx == SET_SGB || idx == SET_COLOR) &&
+   if ((idx == SET_GBPAL || idx == SET_SGB || idx == SET_COLOR ||
+        idx == SET_WIDE || idx == SET_WFILL) &&
        fe_console_is_retro(pcfg_display_console()))
       return 0;
    if (idx >= SET_HDR_THIS && idx <= SET_SUN)
