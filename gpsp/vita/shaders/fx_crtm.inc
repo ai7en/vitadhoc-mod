@@ -3,7 +3,7 @@
  * output (video_vita.c fx_draw) and read by pass B (fx_crt.inc):
  *   r  scan row shape x phosphor mask, / 3
  *   g  vignette term (strength * (x - 0.5)^2), x 4
- *   b  border (rounded corners)
+ *   b  1 (the rounded corners of the Geom look are left out)
  * Same uniforms as pass B; redrawn when the picture's size, its output size
  * or the filter changes. */
 float rx = U0.x;
@@ -29,36 +29,4 @@ float mq = uv.x * U0.z * ((U3.x > 0.5f ? 0.6666f : 1.0f) * 0.5f);
 if (U3.x > 1.5f)
    mq = uv.x * U0.z / mscale;
 float mask = (1.0f - U3.y) + U3.y * fx_sine(mq);
-/* border */
-float bm = 1.0f;
-{
-   float hx = abs(uv.x - 0.5f);
-   float hy = abs(uv.y - 0.5f);
-   if (max(hx, hy) >= 0.43f)
-   {
-      float radius = 0.04f;
-      float trans = 90.0f;
-      if (U3.w < 0.5f)
-      {
-         float ox = hx * (1.0f + 4.0f * hy * hy * 0.031f);
-         float oy = hy * (1.0f + 4.0f * hx * hx * 0.041f);
-         hx = ox;
-         hy = oy;
-      }
-      else if (U3.w < 1.5f)
-      {
-         radius = 0.055f;
-         trans = 60.0f;
-      }
-      else
-      {
-         radius = 0.025f;
-         trans = 60.0f;
-      }
-      float qx = max(hx - (0.5f - radius), 0.0f);
-      float qy = max(hy - (0.5f - radius), 0.0f);
-      float m = clamp((radius - sqrt(qx * qx + qy * qy)) * trans, 0.0f, 1.0f);
-      bm = U3.w > 1.5f ? lerp1(0.75f, 1.0f, m) : m;
-   }
-}
-return float4(row_f * mask * 0.33333334f, U3.z * vig * vig * 4.0f, bm, 1.0f);
+return float4(row_f * mask * 0.33333334f, U3.z * vig * vig * 4.0f, 1.0f, 1.0f);

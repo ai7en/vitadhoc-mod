@@ -12,7 +12,7 @@
  *                   GPL-2.0-or-later), tiny_ntsc (Vsevolod, MIT)
  * Changes: GLSL -> this dialect; the grid is locked to the picture's own
  * pixels (no gl_FragCoord); the vertical roll and the warp of the picture
- * are left out (the Geom border keeps only the rounded corner shape).
+ * are left out (the Geom border with its rounded corners is left out too).
  * See notices/THIRD-PARTY.md.
  *
  * Uniforms (U0..U5, set by video_vita.c):

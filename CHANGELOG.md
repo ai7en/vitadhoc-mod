@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- The CRT shader looks no longer cut the picture's corners round.
 - The speed guard lets the LCD / CRT shader looks take up to 14 ms of GPU time a frame (the CRT
   measures 12.2 ms on a Vita); `gpu_fx_limit_us` in vita.ini changes the limit.
 - The ScreenScraper chooser follows the d-pad of the home layout (up / down move, X no longer also

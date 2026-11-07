@@ -4,10 +4,9 @@
  * screen-size terms (fx_crtm.inc, unit 1: Mask).
  *   U2  contrast | scan grid (0 auto, 1 240-class, 2 480-class) |
  *       scanline dark | scanline bright
- *   (U3 is baked into the mask: mask type, strength, vignette, border)
+ *   (U3 is baked into the mask: mask type, strength, vignette)
  *   U4  (z) noise on
- * No vertical roll, and the picture is never warped: the Geom border only
- * borrows the curved outline for its rounded corners. */
+ * No vertical roll, no warp of the picture and no rounded corners. */
 float rx = U0.x;
 float ry = U0.y;
 float2 pp = float2(vTexcoord.x * U5.x, vTexcoord.y * U5.y - U5.z);
