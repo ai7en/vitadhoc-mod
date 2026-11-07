@@ -998,14 +998,10 @@ static float hm_topbar(float dy, int n_scan)
    /* the right: settings, the time, the battery */
    {
       /* one glass pill under search, settings, the time and the battery */
-      float left = hm_status_x(VS_W - HM_X) - 100.0f;
+      float left = hm_status_x(VS_W - HM_X) - 20.0f;
       vs_rrect(left, y + 2, VS_W - HM_X + 22 - left, 34, 17, HC_GLASS_HI);
    }
    x = hm_status(VS_W - HM_X, y);
-   vs_icon(VS_I_GEAR, x - 30, y + 19, 26, HC_TEXT2);
-   VS_TCH_BTN(PSP_CTRL_START, x - 50, y, 44, 44);
-   vs_icon(VS_I_SEARCH, x - 80, y + 19, 26, HC_TEXT2);
-   VS_TCH_BTN(BROWSER_FIND_BUTTON, x - 102, y, 44, 44);
    if (g_find[0])
    {
       /* The search in force, as a chip under the tabs: what was looked
@@ -1164,7 +1160,7 @@ static void hm_keybar(float y, float left)
       n--;
    }
    x = VS_W - HM_X - total;
-   vs_rrect(x, y + 6, total, 44, 22, HC_GLASS);
+   vs_rrect(x, y, total, 56, 28, HC_GLASS);
    x += 18.0f;
    for (i = 0; i < n; i++)
    {
@@ -1179,7 +1175,7 @@ static void hm_keybar(float y, float left)
       vs_text(VS_CAPTION, x + lead[i] + 8.0f,
               y + 28.0f - (float)vs_ascent(VS_CAPTION) + 7.3f, it[i].word,
               HC_TEXT2);
-      VS_TCH_BTN(it[i].btn, x - 8, y + 6, w[i] + 16, 44);
+      VS_TCH_BTN(it[i].btn, x - 8, y, w[i] + 16, 56);
       x += w[i] + 20.0f;
    }
 }
