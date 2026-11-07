@@ -984,9 +984,19 @@ static float hm_topbar(float dy, int n_scan)
          vs_text(VS_LABEL, x + 13, y + 7, CON[c], HC_TEXT3);
       x += w + 4;
    }
-   vs_icon(VS_I_BTN_TRI, x + 12, y + 19, 20, HC_TEXT3);
-   UI_TCH_BTN(PSP_CTRL_TRIANGLE, (int)(cx / 2) - 2, (int)(y / 2),
-              (int)((x + 26 - cx) / 2) + 4, 22);
+   /* L / R step through them: key caps after the last one, a tap on a cap
+    * steps that way */
+   {
+      float lw = vs_text_w(VS_CAPTION, "L") + 14.0f;
+      float rw = vs_text_w(VS_CAPTION, "R") + 14.0f;
+      vs_rrect(x + 4, y + 8, lw, 22, 6, HC_GLASS);
+      vs_text(VS_CAPTION, x + 11, y + 8, "L", HC_TEXT3);
+      VS_TCH_BTN(PSP_CTRL_LTRIGGER, x, y, lw + 8, 40);
+      vs_rrect(x + 10 + lw, y + 8, rw, 22, 6, HC_GLASS);
+      vs_text(VS_CAPTION, x + 17 + lw, y + 8, "R", HC_TEXT3);
+      VS_TCH_BTN(PSP_CTRL_RTRIGGER, x + 8 + lw, y, rw + 8, 40);
+      x += lw + rw + 14.0f;
+   }
 
    /* the right: settings, the time, the battery */
    {
@@ -1040,7 +1050,6 @@ static void hm_row(const char *rom_dir, int cur, int n, float dy, int idle)
 {
    int k, first = cur > 0 ? -1 : 0;
    float tx = HM_X;
-   char name[64];
    int rom_cur = view_rom(cur);
 
    if (g_hm_label_for != rom_cur)
@@ -1110,20 +1119,8 @@ static void hm_row(const char *rom_dir, int cur, int n, float dy, int idle)
       }
       if (k == 0)
       {
-         float lw;
-         /* The name is under the row (hm_focus); beside the icon only the
-          * console is said. */
-         lw = 0;
-         {
-            const char *con = skin_of(g_pcfg.console)->full;
-            float cw = vs_text_w(VS_BODY, con);
-            int la = (int)g_hm_label_a;
-            float ly = HM_ROW_Y + dy + HM_BIG * 0.5f;
-            vs_text(VS_BODY, t->x + t->s + 24, ly - 12, con,
-                    VS_HEX(0xA7B0C6, la));
-            if (cw > lw)
-               lw = cw;
-         }
+         /* Nothing is written beside the icon: the name is under the row. */
+         const float lw = 0.0f;
          tx = t->x + t->s + 24 + lw + 36;
       }
       else if (k > 0)
@@ -1146,15 +1143,16 @@ static float g_hm_btn_end = HM_X + 300;
 
 static void hm_keybar(float y, float left)
 {
-   struct { int icon; const char *cap, *word; unsigned btn; } it[4] = {
+   struct { int icon; const char *cap, *word; unsigned btn; } it[5] = {
       { VS_I_BTN_O, NULL, g_find[0] ? "Clear search" : "Search",
         BROWSER_FIND_BUTTON },
-      { VS_I_BTN_TRI, NULL, "Console", PSP_CTRL_TRIANGLE },
+      { VS_I_BTN_TRI, NULL, "Scrape", PSP_CTRL_TRIANGLE },
+      { -1, "L / R", "Console", PSP_CTRL_RTRIGGER },
       { -1, "START", "Settings", PSP_CTRL_START },
       { -1, "SELECT", "Lists", PSP_CTRL_SELECT } };
-   float lead[4], w[4], total, x, avail = VS_W - HM_X - left - 24.0f;
-   int n = 4, i;
-   for (i = 0; i < 4; i++)
+   float lead[5], w[5], total, x, avail = VS_W - HM_X - left - 24.0f;
+   int n = 5, i;
+   for (i = 0; i < 5; i++)
    {
       lead[i] = it[i].icon >= 0 ? 24.0f : vs_text_w(VS_CAPTION, it[i].cap) + 14.0f;
       w[i] = lead[i] + 8.0f + vs_text_w(VS_CAPTION, it[i].word);
