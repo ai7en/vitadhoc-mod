@@ -2,6 +2,9 @@
 
 ## Unreleased
 
+- The ScreenScraper chooser follows the d-pad of the home layout (up / down move, X no longer also
+  starts the game), and the CRT bakes its scan rows, mask, vignette and border into a texture that
+  is redrawn only when the picture's size or the filter changes.
 - Fixed: after TRIANGLE the ScreenScraper chooser ignored every key (O and X included) and the
   game list stayed frozen.
 - CRT shaders run in two passes: the dither merge, ghost and colour are drawn once at the picture's

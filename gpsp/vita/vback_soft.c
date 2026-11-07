@@ -390,7 +390,7 @@ struct vb_prog { int which; };
 static struct vb_prog g_progs[VB_PROGS] = { { VB_PROG_XBRZ0 }, { VB_PROG_XBRZ1 },
                                              { VB_PROG_XBRZ2 },
                                              { VB_PROG_FX_LCD }, { VB_PROG_FX_CRT },
-                                             { VB_PROG_FX_CRTA } };
+                                             { VB_PROG_FX_CRTA }, { VB_PROG_FX_CRTM } };
 
 uint32_t vbsp_run(int which, const uint32_t *t0, int w0, int h0,
                   const uint32_t *t1, int w1, int h1, float u, float v,

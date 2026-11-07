@@ -1638,7 +1638,10 @@ static int gx_draw(vb_tex *t, unsigned w, unsigned h, const vid_geo *g)
 static int g_fx_kind[2];       /* LCD, CRT: 0 untried, 1 ok, -1 not        */
 #define FX_RT_W 512            /* the CRT's pass A target: the widest picture */
 #define FX_RT_H 256
-static vb_tex *g_fx_rt;
+#define FX_MASK_W 960          /* the baked terms: one texel per screen pixel */
+#define FX_MASK_H 544
+static vb_tex *g_fx_rt, *g_fx_mask;
+static int g_fx_bake[5];       /* what the baked target holds: w, sh, dw, dh, filter */
 static int fx_ready(void)
 {
    const int k = g_filter <= VID_FILTER_LCD_WORN ? 0 : 1;
@@ -1654,7 +1657,10 @@ static int fx_ready(void)
          /* the CRT is two programs and a render target of the picture's size */
          if (!g_fx_rt)
             g_fx_rt = vb_tex_create(FX_RT_W, FX_RT_H, VB_FMT_RGBA8, 1);
-         if (!vb_prog_get(VB_PROG_FX_CRTA) || !g_fx_rt)
+         if (!g_fx_mask)
+            g_fx_mask = vb_tex_create(FX_MASK_W, FX_MASK_H, VB_FMT_RGBA8, 1);
+         if (!vb_prog_get(VB_PROG_FX_CRTA) || !vb_prog_get(VB_PROG_FX_CRTM) ||
+             !g_fx_rt || !g_fx_mask)
             a = NULL;
       }
       g_fx_kind[k] = a ? 1 : -1;
@@ -1736,6 +1742,7 @@ static void fx_prefold(void)
    }
    vb_prog_fold(VB_PROG_FX_CRT, u);
    vb_prog_fold(VB_PROG_FX_CRTA, u);
+   vb_prog_fold(VB_PROG_FX_CRTM, u);
 }
 
 static int fx_draw(vb_tex *t, unsigned w, unsigned h, const vid_geo *g)
@@ -1746,8 +1753,11 @@ static int fx_draw(vb_tex *t, unsigned w, unsigned h, const vid_geo *g)
    const int lcd = f <= VID_FILTER_LCD_WORN;
    vb_prog *p = vb_prog_get(lcd ? VB_PROG_FX_LCD : VB_PROG_FX_CRT);
    vb_prog *pa = lcd ? NULL : vb_prog_get(VB_PROG_FX_CRTA);
-   if (!p || !w || !h || g->sh <= 0 || (!lcd && (!pa || !g_fx_rt)) ||
-       (!lcd && (w > FX_RT_W || (unsigned)g->sh > FX_RT_H)))
+   vb_prog *pm = lcd ? NULL : vb_prog_get(VB_PROG_FX_CRTM);
+   if (!p || !w || !h || g->sh <= 0 ||
+       (!lcd && (!pa || !pm || !g_fx_rt || !g_fx_mask ||
+                 w > FX_RT_W || (unsigned)g->sh > FX_RT_H ||
+                 g->dw > FX_MASK_W || g->dh > FX_MASK_H)))
       return 0;
    memset(u, 0, sizeof(u));
    u[0][0] = (float)w; u[0][1] = (float)g->sh;
@@ -1781,6 +1791,25 @@ static int fx_draw(vb_tex *t, unsigned w, unsigned h, const vid_geo *g)
       vb_rt_begin(g_fx_rt);
       vb_pquads(pa, t, NULL, &q, 1, u);
       vb_rt_end();
+      /* the screen-size terms (scan rows, mask, vignette, border) do not move
+       * from frame to frame: drawn again only when the sizes or the filter
+       * change */
+      if (g_fx_bake[0] != (int)w || g_fx_bake[1] != g->sh ||
+          g_fx_bake[2] != g->dw || g_fx_bake[3] != g->dh ||
+          g_fx_bake[4] != f)
+      {
+         vb_tquad bq;
+         float k[VB_PROG_UNIFORMS][4];
+         memcpy(k, u, sizeof(k));
+         k[5][0] = (float)FX_RT_W; k[5][1] = (float)FX_RT_H; k[5][2] = 0.0f;
+         bq.x0 = 0; bq.y0 = 0; bq.x1 = (float)g->dw; bq.y1 = (float)g->dh;
+         bq.u0 = 0; bq.v0 = 0; bq.u1 = (float)w; bq.v1 = (float)g->sh;
+         vb_rt_begin(g_fx_mask);
+         vb_pquads(pm, g_fx_rt, NULL, &bq, 1, k);
+         vb_rt_end();
+         g_fx_bake[0] = (int)w; g_fx_bake[1] = g->sh;
+         g_fx_bake[2] = g->dw; g_fx_bake[3] = g->dh; g_fx_bake[4] = f;
+      }
    }
    backdrop_draw(geo_covers(g));
    q.x0 = (float)g->ox; q.y0 = (float)g->oy;
@@ -1796,7 +1825,7 @@ static int fx_draw(vb_tex *t, unsigned w, unsigned h, const vid_geo *g)
       /* pass B: the target's picture at the screen's size, the grid and mask */
       u[5][0] = (float)FX_RT_W; u[5][1] = (float)FX_RT_H; u[5][2] = 0.0f;
       q.u0 = 0; q.v0 = 0; q.u1 = (float)w; q.v1 = (float)g->sh;
-      vb_pquads(p, g_fx_rt, NULL, &q, 1, u);
+      vb_pquads(p, g_fx_rt, g_fx_mask, &q, 1, u);
    }
    g_gx_frames++;
    return 1;

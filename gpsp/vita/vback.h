@@ -195,10 +195,12 @@ void vb_gpu_stats(unsigned *frames, unsigned *avg_us, unsigned *max_us);
  * (edges clamped); uniforms [0]..[5] as fx_common.inc and fx_lcd.inc /
  * fx_crt.inc say.  Drawn at the final size.
  * VB_PROG_FX_CRTA is the CRT's first pass (fx_crta.inc), drawn 1:1 into a
- * render target at the picture's size; VB_PROG_FX_CRT then reads that target
- * (unit 0) instead of the picture. */
+ * render target at the picture's size; VB_PROG_FX_CRTM bakes the screen-size
+ * terms (shaders/fx_crtm.inc) into a second target; VB_PROG_FX_CRT then reads
+ * the first (unit 0) and the second (unit 1, point sampled) instead of the
+ * picture. */
 enum { VB_PROG_XBRZ0 = 0, VB_PROG_XBRZ1 = 1, VB_PROG_XBRZ2 = 2,
-       VB_PROG_FX_LCD = 3, VB_PROG_FX_CRT = 4, VB_PROG_FX_CRTA = 5,
+       VB_PROG_FX_LCD = 3, VB_PROG_FX_CRT = 4, VB_PROG_FX_CRTA = 5, VB_PROG_FX_CRTM = 6,
        VB_PROGS };
 enum { VB_PROG_UNIFORMS = 6 };
 typedef struct vb_prog vb_prog;

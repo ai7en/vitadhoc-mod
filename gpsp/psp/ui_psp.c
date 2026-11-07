@@ -12144,6 +12144,7 @@ int ui_browser(const char *rom_dir, char *out, size_t out_sz,
                osd_toast("ScreenScraper: could not start");
             edges &= ~PSP_CTRL_TRIANGLE;
          }
+         const int ssp_was_open = g_ssp.mode != 0;
          if (g_ssp.mode && !ss_busy())
          {
             const char *typed;
@@ -12164,9 +12165,11 @@ int ui_browser(const char *rom_dir, char *out, size_t out_sz,
             else if (!find_owns_input)
             {
                const int rows = g_ssp.mode == 1 ? 2 : nh;
-               if (edges & PSP_CTRL_UP)
+               /* the home layout remaps the pad (home_remap): the d-pad's up
+                * arrives as BROWSER_FRESH_BUTTON and its down as LEFT */
+               if (edges & (PSP_CTRL_UP | BROWSER_FRESH_BUTTON))
                   g_ssp.cur = (g_ssp.cur + rows - 1) % (rows ? rows : 1);
-               if (edges & PSP_CTRL_DOWN)
+               if (edges & (PSP_CTRL_DOWN | PSP_CTRL_LEFT))
                   g_ssp.cur = (g_ssp.cur + 1) % (rows ? rows : 1);
                if (g_ssp.cur < g_ssp.top)
                   g_ssp.top = g_ssp.cur;
@@ -12212,9 +12215,10 @@ int ui_browser(const char *rom_dir, char *out, size_t out_sz,
                      osd_toast("ScreenScraper: could not start");
                }
             }
-            if (g_ssp.mode && !find_owns_input)
+            if (ssp_was_open && !find_owns_input)
             {
-               /* the chooser keeps every key.  g_prev_pad is left alone:
+               /* the chooser keeps every key, also the one that closed it
+                * (X starting a scrape must not start the game too).  g_prev_pad is left alone:
                 * pad_edges() stores the held keys each frame, and setting it
                 * to all ones here made every later press look held, so O and
                 * X never reached the chooser again. */
