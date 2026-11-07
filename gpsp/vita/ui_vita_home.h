@@ -956,52 +956,49 @@ static float hm_topbar(float dy, int n_scan)
    float x = HM_X, y = 18 + dy, cx;
    int c;
 
-   /* Games | Starred | Recent: SELECT steps through them (Recent once a
-    * game has been played), a tap goes straight to one. */
+   /* Games | Starred | Recent as icons: SELECT steps through them (Recent
+    * once a game has been played), a tap goes straight to one. */
    {
-      static const char *const TAB[3] = { "Games", "Starred", "Recent" };
+      static const int TAB_ICON[3] = { VS_I_CART, VS_I_STAR, VS_I_REFRESH };
       int t, on = browser_tab();
       for (t = 0; t < 3; t++)
       {
-         vs_text(VS_SUB, x, y, TAB[t], t == on ? HC_TEXT : HC_TEXT3);
-         UI_TCH_BTN(t == on ? 0 : BROWSER_TAB_BUTTON(t), (int)(x / 2) - 4,
-                    (int)(y / 2), (int)(vs_text_w(VS_SUB, TAB[t]) / 2) + 8, 22);
-         x += vs_text_w(VS_SUB, TAB[t]) + (t < 2 ? 24 : 30);
+         if (t == on)
+            vs_rrect(x, y + 2, 46, 34, 17, HC_GLASS_HI);
+         vs_icon(TAB_ICON[t], x + 23, y + 19, 24, t == on ? HC_TEXT : HC_TEXT3);
+         UI_TCH_BTN(t == on ? 0 : BROWSER_TAB_BUTTON(t), (int)(x / 2),
+                    (int)(y / 2), 23, 22);
+         x += 50;
       }
+      x += 16;
    }
 
-   /* the consoles: TRIANGLE steps through them */
+   /* the consoles: L / R step through them; a tap on one steps toward it */
    cx = x;
    for (c = 0; c < FE_CONSOLE_COUNT; c++)
    {
-      float w = vs_text_w(VS_LABEL, CON[c]) + 26;
+      float w = vs_text_w(VS_LABEL, CON[c]) + 22;
+      /* the capitals' middle on the plate's middle, not the line box's */
+      float ty = y + 19.0f - (float)vs_ascent(VS_LABEL) + 8.75f;
       if (c == g_pcfg.console)
       {
          vs_rrect(x, y + 2, w, 34, 17, HC_GLASS_HI);
-         vs_text(VS_LABEL, x + 13, y + 7, CON[c], HC_TEXT);
+         vs_text(VS_LABEL, x + 11, ty, CON[c], HC_TEXT);
       }
       else
-         vs_text(VS_LABEL, x + 13, y + 7, CON[c], HC_TEXT3);
-      x += w + 4;
+      {
+         vs_text(VS_LABEL, x + 11, ty, CON[c], HC_TEXT3);
+         VS_TCH_BTN(c > g_pcfg.console ? PSP_CTRL_RTRIGGER : PSP_CTRL_LTRIGGER,
+                    x, y, w, 40);
+      }
+      x += w + 2;
    }
-   /* L / R step through them: key caps after the last one, a tap on a cap
-    * steps that way */
-   {
-      float lw = vs_text_w(VS_CAPTION, "L") + 14.0f;
-      float rw = vs_text_w(VS_CAPTION, "R") + 14.0f;
-      vs_rrect(x + 4, y + 8, lw, 22, 6, HC_GLASS);
-      vs_text(VS_CAPTION, x + 11, y + 8, "L", HC_TEXT3);
-      VS_TCH_BTN(PSP_CTRL_LTRIGGER, x, y, lw + 8, 40);
-      vs_rrect(x + 10 + lw, y + 8, rw, 22, 6, HC_GLASS);
-      vs_text(VS_CAPTION, x + 17 + lw, y + 8, "R", HC_TEXT3);
-      VS_TCH_BTN(PSP_CTRL_RTRIGGER, x + 8 + lw, y, rw + 8, 40);
-      x += lw + rw + 14.0f;
-   }
+   (void)cx;
 
    /* the right: settings, the time, the battery */
    {
       /* one glass pill under search, settings, the time and the battery */
-      float left = hm_status_x(VS_W - HM_X) - 102.0f;
+      float left = hm_status_x(VS_W - HM_X) - 100.0f;
       vs_rrect(left, y + 2, VS_W - HM_X + 22 - left, 34, 17, HC_GLASS_HI);
    }
    x = hm_status(VS_W - HM_X, y);
@@ -1176,9 +1173,12 @@ static void hm_keybar(float y, float left)
       else
       {
          vs_rrect(x, y + 17, lead[i], 22, 6, HC_GLASS_HI);
-         vs_text(VS_CAPTION, x + 7, y + 17, it[i].cap, HC_TEXT);
+         vs_text(VS_CAPTION, x + 7, y + 28.0f - (float)vs_ascent(VS_CAPTION) + 7.3f,
+                 it[i].cap, HC_TEXT);
       }
-      vs_text(VS_CAPTION, x + lead[i] + 8.0f, y + 17, it[i].word, HC_TEXT2);
+      vs_text(VS_CAPTION, x + lead[i] + 8.0f,
+              y + 28.0f - (float)vs_ascent(VS_CAPTION) + 7.3f, it[i].word,
+              HC_TEXT2);
       VS_TCH_BTN(it[i].btn, x - 8, y + 6, w[i] + 16, 44);
       x += w[i] + 20.0f;
    }
