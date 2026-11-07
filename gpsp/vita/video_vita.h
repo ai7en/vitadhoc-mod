@@ -153,6 +153,7 @@ int  vid_gpu_xbrz(unsigned *frames);
 /* The LCD / CRT shader looks (video_psp.h VID_FILTER_LCD_RGB..): on = 0 keeps
  * them on the CPU's grid / scanlines.  vid_gpu_fx: is a look the GPU's now. */
 void vid_set_gpu_fx(int on);
+void vid_set_gpu_fx_limit(unsigned us);   /* vita.ini gpu_fx_limit_us (4000..40000, default 14000) */
 int  vid_gpu_fx(void);
 /* on = 1: every present waits for the GPU and is timed (measuring only);
  * vid_gpu_time_stats: timed samples so far, the GPU's time over a frame

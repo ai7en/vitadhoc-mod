@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- The speed guard lets the LCD / CRT shader looks take up to 14 ms of GPU time a frame (the CRT
+  measures 12.2 ms on a Vita); `gpu_fx_limit_us` in vita.ini changes the limit.
 - The ScreenScraper chooser follows the d-pad of the home layout (up / down move, X no longer also
   starts the game), and the CRT bakes its scan rows, mask, vignette and border into a texture that
   is redrawn only when the picture's size or the filter changes.

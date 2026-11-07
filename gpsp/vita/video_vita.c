@@ -1366,6 +1366,7 @@ static int      g_gx_sampling, g_gx_slow;
 static unsigned g_gx_mark, g_gx_samples, g_gx_avg, g_gx_max;
 
 static int g_fx_on = 1;        /* vid_set_gpu_fx                            */
+static unsigned g_fx_limit_us = 14000;   /* vid_set_gpu_fx_limit: the shader looks may take this much GPU time a frame; the CRT measured 12.2 ms */
 static int g_fx_state[2];      /* the shader looks (LCD, CRT): as g_gx_state */
 static int fx_kind_of(int f) { return f <= VID_FILTER_LCD_WORN ? 0 : 1; }
 static int fx_filter(int f) { return f >= VID_FILTER_LCD_RGB; }
@@ -1378,6 +1379,12 @@ void vid_set_gpu_xbrz(int on)
 void vid_set_gpu_fx(int on)
 {
    g_fx_on = on ? 1 : 0;
+}
+
+void vid_set_gpu_fx_limit(unsigned us)
+{
+   if (us >= 4000 && us <= 40000)
+      g_fx_limit_us = us;
 }
 
 void vid_set_gpu_time(int on)
@@ -1439,7 +1446,8 @@ static void gx_guard(void)
       g_gx_avg = avg;
       g_gx_max = mx;
       fe_evt("gpu_%s_time frames=%u gpu_us=%u/%u", kind, n, avg, mx);
-      g_gx_slow = avg > GX_SLOW_US ? g_gx_slow + 1 : 0;
+      g_gx_slow = avg > (fx_filter(g_filter) ? g_fx_limit_us : (unsigned)GX_SLOW_US)
+                  ? g_gx_slow + 1 : 0;
       if (g_gx_slow >= 2)
       {
          *st = -2;

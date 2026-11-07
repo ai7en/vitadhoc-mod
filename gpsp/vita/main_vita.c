@@ -254,6 +254,7 @@ static struct
                                * scanline looks' darkness (5 = default) */
    int      gpu_fx;           /* gpu_fx = 0: the LCD / CRT shader looks stay on
                                * the CPU's grid and scanlines (default 1)  */
+   int      gpu_fx_limit;     /* gpu_fx_limit_us: GPU time a frame the looks may take */
    /* Last: the initializer below is positional, and "" is its default. */
    char     shot_dir[200];    /* screenshots = ux0:pictures/VitAdhoc: where
                                  * screenshots go (empty: screenshots/) */
@@ -261,7 +262,7 @@ static struct
                                * RetroAchievements server (the twin's
                                * tests; "" = retroachievements.org)    */
 } g_sw = { PACE_VSYNC, 1, 0, 0, 1, 1, 0, -1, -1, 0, 0, 0, 0, 1, 2, -1, 1, 1,
-           "", 0, 2, 1, 0, 0, 0, 0, 0, 3, 2, 1, 1, 5, 1, "", "" };
+           "", 0, 2, 1, 0, 0, 0, 0, 0, 3, 2, 1, 1, 5, 1, 14000, "", "" };
 
 /* vita.ini core_phase: the core's per-phase split of a frame (main.h,
  * "Phase 5h").  Declared here, not through the core's main.h (the whole
@@ -1286,6 +1287,7 @@ static void read_switches(void)
       g_sw.render_thread = 1;
    g_sw.gpu_xbrz        = (int)fe_ini_get_int(ini, "gpu_xbrz", 0) ? 1 : 0;
    g_sw.gpu_fx          = (int)fe_ini_get_int(ini, "gpu_fx", 1) ? 1 : 0;
+   g_sw.gpu_fx_limit    = (int)fe_ini_get_int(ini, "gpu_fx_limit_us", 14000);
    g_sw.gpu_time        = (int)fe_ini_get_int(ini, "gpu_time", 0) ? 1 : 0;
    g_sw.gpu_probe       = (int)fe_ini_get_int(ini, "gpu_probe", 0);
    g_sw.gpu_view        = (int)fe_ini_get_int(ini, "gpu_xbrz_view", 0);
@@ -5106,6 +5108,7 @@ int main(int argc, char **argv)
    vid_set_tex_mem(g_sw.tex_mem);
    vid_set_gpu_xbrz(g_sw.gpu_xbrz);
    vid_set_gpu_fx(g_sw.gpu_fx);
+   vid_set_gpu_fx_limit((unsigned)g_sw.gpu_fx_limit);
    vid_set_gpu_time(g_sw.gpu_time);
    upscale_fade_drop(g_sw.fade_drop);
    plat_thread_watch("main", 0);
