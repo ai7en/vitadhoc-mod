@@ -148,7 +148,20 @@ static float4 xbrz_pass2(float2 vTexcoord, const sampler2D &Ref,
 #include "shaders/xbrz_pass2.inc"
 }
 
-static float4 fx_lcd(float2 vTexcoord, const sampler2D &Source, float4 U0,
+static float4 fx_lcda(float2 vTexcoord, const sampler2D &Source, float4 U0,
+                      float4 U1, float4 U2, float4 U3, float4 U4, float4 U5)
+{
+#include "shaders/fx_lcda.inc"
+}
+
+static float4 fx_lcdm(float2 vTexcoord, const sampler2D &Source, float4 U0,
+                      float4 U1, float4 U2, float4 U3, float4 U4, float4 U5)
+{
+#include "shaders/fx_lcdm.inc"
+}
+
+static float4 fx_lcd(float2 vTexcoord, const sampler2D &Source,
+                     const sampler2D &Mask, float4 U0,
                      float4 U1, float4 U2, float4 U3, float4 U4, float4 U5)
 {
 #include "shaders/fx_lcd.inc"
@@ -205,7 +218,9 @@ extern "C" uint32_t vbsp_run(int which, const uint32_t *t0, int w0, int h0,
       float4 u3(uni[3][0], uni[3][1], uni[3][2], uni[3][3]);
       float4 u4(uni[4][0], uni[4][1], uni[4][2], uni[4][3]);
       float4 u5(uni[5][0], uni[5][1], uni[5][2], uni[5][3]);
-      return pack(which == 3 ? fx_lcd(float2(u, v), s0, u0, u1, u2, u3, u4, u5)
+      return pack(which == 3 ? fx_lcd(float2(u, v), s0, s1, u0, u1, u2, u3, u4, u5)
+                : which == 7 ? fx_lcda(float2(u, v), s0, u0, u1, u2, u3, u4, u5)
+                : which == 8 ? fx_lcdm(float2(u, v), s0, u0, u1, u2, u3, u4, u5)
                 : which == 5 ? fx_crta(float2(u, v), s0, u0, u1, u2, u3, u4, u5)
                 : which == 6 ? fx_crtm(float2(u, v), s0, u0, u1, u2, u3, u4, u5)
                              : fx_crt(float2(u, v), s0, s1, u0, u1, u2, u3, u4, u5));

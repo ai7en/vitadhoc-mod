@@ -1660,14 +1660,16 @@ static int fx_ready(void)
       const unsigned t0 = pspcompat_time_us();
       const int which = k ? VB_PROG_FX_CRT : VB_PROG_FX_LCD;
       vb_prog *a = vb_prog_get(which);
-      if (a && k)
+      if (a)
       {
-         /* the CRT is two programs and a render target of the picture's size */
+         /* three programs and two render targets: the picture's own pixels
+          * (pass A), the screen-size terms (baked), the screen-size pass */
          if (!g_fx_rt)
             g_fx_rt = vb_tex_create(FX_RT_W, FX_RT_H, VB_FMT_RGBA8, 1);
          if (!g_fx_mask)
             g_fx_mask = vb_tex_create(FX_MASK_W, FX_MASK_H, VB_FMT_RGBA8, 1);
-         if (!vb_prog_get(VB_PROG_FX_CRTA) || !vb_prog_get(VB_PROG_FX_CRTM) ||
+         if (!vb_prog_get(k ? VB_PROG_FX_CRTA : VB_PROG_FX_LCDA) ||
+             !vb_prog_get(k ? VB_PROG_FX_CRTM : VB_PROG_FX_LCDM) ||
              !g_fx_rt || !g_fx_mask)
             a = NULL;
       }
@@ -1746,6 +1748,8 @@ static void fx_prefold(void)
    if (g_filter <= VID_FILTER_LCD_WORN)
    {
       vb_prog_fold(VB_PROG_FX_LCD, u);
+      vb_prog_fold(VB_PROG_FX_LCDA, u);
+      vb_prog_fold(VB_PROG_FX_LCDM, u);
       return;
    }
    vb_prog_fold(VB_PROG_FX_CRT, u);
@@ -1760,12 +1764,11 @@ static int fx_draw(vb_tex *t, unsigned w, unsigned h, const vid_geo *g)
    const int f = g_filter;
    const int lcd = f <= VID_FILTER_LCD_WORN;
    vb_prog *p = vb_prog_get(lcd ? VB_PROG_FX_LCD : VB_PROG_FX_CRT);
-   vb_prog *pa = lcd ? NULL : vb_prog_get(VB_PROG_FX_CRTA);
-   vb_prog *pm = lcd ? NULL : vb_prog_get(VB_PROG_FX_CRTM);
-   if (!p || !w || !h || g->sh <= 0 ||
-       (!lcd && (!pa || !pm || !g_fx_rt || !g_fx_mask ||
-                 w > FX_RT_W || (unsigned)g->sh > FX_RT_H ||
-                 g->dw > FX_MASK_W || g->dh > FX_MASK_H)))
+   vb_prog *pa = vb_prog_get(lcd ? VB_PROG_FX_LCDA : VB_PROG_FX_CRTA);
+   vb_prog *pm = vb_prog_get(lcd ? VB_PROG_FX_LCDM : VB_PROG_FX_CRTM);
+   if (!p || !w || !h || g->sh <= 0 || !pa || !pm || !g_fx_rt || !g_fx_mask ||
+       w > FX_RT_W || (unsigned)g->sh > FX_RT_H ||
+       g->dw > FX_MASK_W || g->dh > FX_MASK_H)
       return 0;
    memset(u, 0, sizeof(u));
    u[0][0] = (float)w; u[0][1] = (float)g->sh;
@@ -1789,7 +1792,6 @@ static int fx_draw(vb_tex *t, unsigned w, unsigned h, const vid_geo *g)
          }
       }
    }
-   if (!lcd)
    {
       /* pass A: the picture's own pixels, 1:1 into the target (the work that
        * does not depend on the screen's size: dither merge, ghost, colour) */
@@ -1822,15 +1824,8 @@ static int fx_draw(vb_tex *t, unsigned w, unsigned h, const vid_geo *g)
    backdrop_draw(geo_covers(g));
    q.x0 = (float)g->ox; q.y0 = (float)g->oy;
    q.x1 = (float)(g->ox + g->dw); q.y1 = (float)(g->oy + g->dh);
-   if (lcd)
    {
-      q.u0 = 0; q.v0 = (float)g->sy0;
-      q.u1 = (float)w; q.v1 = (float)(g->sy0 + g->sh);
-      vb_pquads(p, t, NULL, &q, 1, u);
-   }
-   else
-   {
-      /* pass B: the target's picture at the screen's size, the grid and mask */
+      /* pass B: pass A's picture at the screen's size, with the baked terms */
       u[5][0] = (float)FX_RT_W; u[5][1] = (float)FX_RT_H; u[5][2] = 0.0f;
       q.u0 = 0; q.v0 = 0; q.u1 = (float)w; q.v1 = (float)g->sh;
       vb_pquads(p, g_fx_rt, g_fx_mask, &q, 1, u);

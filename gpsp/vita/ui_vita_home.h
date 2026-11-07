@@ -618,7 +618,7 @@ static uint32_t g_hm_clip_serial;
 static int g_hm_clip_selection = -1;
 static int g_hm_clip_disabled;
 
-/* video: videos/<game>.mp4 (what ScreenScraper brought), else the clip of
+/* video: videos/<game>.mp4 (what ScreenScraper brought); else the clip of
  * the last play.  The worker finds out whether the file is there. */
 static int hm_clip_path(int rom, char *out, size_t cap, int video)
 {
@@ -698,7 +698,7 @@ static void hm_clip_open2(int rom, int video)
 
 static void hm_clip_open(int rom)
 {
-   hm_clip_open2(rom, 1);        /* the scraped video first, then the clip */
+   hm_clip_open2(rom, 0);        /* the last play's clip first, then the scraped video */
 }
 
 static int hm_clip_textures(unsigned w, unsigned h)
@@ -774,10 +774,10 @@ static void hm_clip_tick(int rom, int idle)
          clip_preview_release(g_hm_clip.next.slot);
          g_hm_clip.have_next = 0;
          g_hm_clip.ended = 1;
-         if (bad && g_hm_clip.vid && g_hm_clip.shown < 0)
+         if (bad && !g_hm_clip.vid && g_hm_clip.shown < 0)
          {
-            /* no video (or one that does not play): the last play's clip */
-            hm_clip_open2(rom, 0);
+            /* no clip of the last play: the scraped video, if there is one */
+            hm_clip_open2(rom, 1);
             return;
          }
          if (bad)

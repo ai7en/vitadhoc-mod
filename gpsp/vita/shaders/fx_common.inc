@@ -78,6 +78,14 @@ float3 fx_tap(V_SAMP S, float4 U0, float4 U5, float2 pos)
    return V_RGB(c);
 }
 
+/* The same with the alpha channel (the LCD's pass A keeps the shade there) */
+float4 fx_tap4(V_SAMP S, float4 U0, float4 U5, float2 pos)
+{
+   float x = clamp(pos.x, 0.5f, U0.x - 0.5f);
+   float y = clamp(pos.y, 0.5f, U0.y - 0.5f);
+   return tex2D(S, float2(x / U5.x, (y + U5.z) / U5.y));
+}
+
 /* Sharp bilinear: crisp texel centres, a blend only across the edges, and
  * the blend narrows as the scale grows (Sharp-Shimmerless). */
 float2 fx_sharp(float2 p, float ss)

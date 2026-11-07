@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+- Video previews: the clip of the last play comes first and the scraped video plays for games
+  without one (the video's player handle was taken for an error, so no video ever opened).
+- The LCD shader looks run in two passes like the CRT (picture-size work once, the grid and
+  border baked into a texture): LCD worn measured 20 ms of GPU time in one pass.
 - Video previews: a game's scraped video (`videos/<game>.mp4`) plays on its card in the game list
   where the clip of the last play would (the clip is still used for games without a video).
   The system's SceAvPlayer decodes it; the sound is not played. `video_uv_swap` and `video_stride`

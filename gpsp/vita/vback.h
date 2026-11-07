@@ -201,7 +201,7 @@ void vb_gpu_stats(unsigned *frames, unsigned *avg_us, unsigned *max_us);
  * picture. */
 enum { VB_PROG_XBRZ0 = 0, VB_PROG_XBRZ1 = 1, VB_PROG_XBRZ2 = 2,
        VB_PROG_FX_LCD = 3, VB_PROG_FX_CRT = 4, VB_PROG_FX_CRTA = 5, VB_PROG_FX_CRTM = 6,
-       VB_PROGS };
+       VB_PROG_FX_LCDA = 7, VB_PROG_FX_LCDM = 8, VB_PROGS };
 enum { VB_PROG_UNIFORMS = 6 };
 typedef struct vb_prog vb_prog;
 vb_prog    *vb_prog_get(int which);

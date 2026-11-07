@@ -99,7 +99,9 @@ av_player *av_open(const char *path)
    init.numOutputVideoFrameBuffers = 3;
    init.autoStart = 1;
    p->h = sceAvPlayerInit(&init);
-   if (p->h < 0)
+   /* the handle is a pointer into user memory (0x8xxxxxxx, negative as an
+    * int); the errors are 0x806Axxxx and the like, far below any pointer */
+   if (p->h == 0 || (unsigned)p->h < 0x81000000u)
    {
       fe_evt("video_open init=%08x", (unsigned)p->h);
       free(p);
