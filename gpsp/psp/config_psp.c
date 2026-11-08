@@ -6,6 +6,7 @@
 #include "video_psp.h"
 #include "fe_util.h"
 #include "fe_evt.h"
+#include "fe_retro.h"
 #ifdef VITA
 #include <stdlib.h>
 #include "pspcompat.h"        /* pspcompat_user_name: the default nick */
@@ -175,6 +176,8 @@ void pcfg_load_doc(const char *ini_path, fe_ini_doc *doc)
    g_pcfg.ui_home     = (int)fe_ini_get_int(cfg_path, "ui_home", 1) ? 1 : 0;
    g_pcfg.previews    = (int)fe_ini_get_int(cfg_path, "previews", 1) ? 1 : 0;
    g_pcfg.full_speed  = (int)fe_ini_get_int(cfg_path, "full_speed", 1) ? 1 : 0;
+   g_pcfg.gb_engine   = (int)fe_ini_get_int(cfg_path, "gb_engine", 1) ? 1 : 0;
+   fe_retro_set_gb_engine(g_pcfg.gb_engine);
    g_pcfg.lib_sort    = (int)fe_ini_get_int(cfg_path, "lib_sort", 0);
    if (g_pcfg.lib_sort < 0 || g_pcfg.lib_sort > 2)
       g_pcfg.lib_sort = 0;
@@ -632,6 +635,7 @@ void pcfg_save(void)
    fe_ini_set_int(cfg_path, "ui_home", g_pcfg.ui_home);
    fe_ini_set_int(cfg_path, "previews", g_pcfg.previews);
    fe_ini_set_int(cfg_path, "full_speed", g_pcfg.full_speed);
+   fe_ini_set_int(cfg_path, "gb_engine", g_pcfg.gb_engine);
    {
       /* Written once someone changes it: older files stay byte-identical. */
       char was[8];

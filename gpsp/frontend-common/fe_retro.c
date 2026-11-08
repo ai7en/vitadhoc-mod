@@ -49,9 +49,9 @@ int posix_memalign(void **out, size_t align, size_t size)
 }
 #endif
 
-#define FR_NCORES 3
+#define FR_NCORES 4
 
-enum { FR_MD = 0, FR_NES, FR_SNES };
+enum { FR_MD = 0, FR_NES, FR_SNES, FR_GB };
 
 typedef struct fr_api
 {
@@ -111,11 +111,13 @@ typedef struct fr_api
 FR_DECLARE(md)
 FR_DECLARE(nes)
 FR_DECLARE(snes)
+FR_DECLARE(gmb)
 
 static const fr_api g_api[FR_NCORES] = {
    FR_TABLE(md,   "Genesis Plus GX"),
    FR_TABLE(nes,  "FCEUmm"),
    FR_TABLE(snes, "Snes9x 2005"),
+   FR_TABLE(gmb,  "Gambatte"),
 };
 #define FR_LINKED 1
 #else
@@ -133,12 +135,47 @@ int fe_console_is_retro(fe_console_t c)
 static int core_index(fe_console_t c)
 {
    return c == FE_CONSOLE_MD ? FR_MD : c == FE_CONSOLE_NES ? FR_NES :
-          c == FE_CONSOLE_SNES ? FR_SNES : -1;
+          c == FE_CONSOLE_SNES ? FR_SNES :
+          (c == FE_CONSOLE_GB || c == FE_CONSOLE_GBC) ? FR_GB : -1;
 }
 
 int fe_retro_available(fe_console_t c)
 {
    return FR_LINKED && core_index(c) >= 0;
+}
+
+/* The Game Boy engine the player chose: 1 Gambatte, 0 TGB Dual. */
+static int g_gb_engine = 1;
+
+void fe_retro_set_gb_engine(int gambatte)
+{
+   g_gb_engine = gambatte ? 1 : 0;
+}
+
+/* Whether this game runs on Gambatte: the player chose it, it is linked,
+ * and the cartridge is one it can play (MBC7's tilt sensor, which TGB Dual
+ * carries, is not).  A zipped game stays with TGB Dual, which unpacks it. */
+int fe_retro_gb_wanted(fe_console_t c, const char *rom_path)
+{
+   unsigned char hdr[0x150];
+   size_t n, len;
+   FILE *f;
+   if (!FR_LINKED || !g_gb_engine || !rom_path ||
+       (c != FE_CONSOLE_GB && c != FE_CONSOLE_GBC))
+      return 0;
+   len = strlen(rom_path);
+   if (len > 4 && rom_path[len - 4] == '.' &&
+       (rom_path[len - 3] == 'z' || rom_path[len - 3] == 'Z' ||
+        rom_path[len - 3] == '7'))
+      return 0;
+   f = fopen(rom_path, "rb");
+   if (!f)
+      return 0;
+   n = fread(hdr, 1, sizeof(hdr), f);
+   fclose(f);
+   if (n < sizeof(hdr) || hdr[0x147] == 0x22)
+      return 0;
+   return 1;
 }
 
 /* --------------------------------------------------------------- state -- */
@@ -169,6 +206,9 @@ static struct
    /* battery */
    uint8_t *sram;               /* the core's own buffer                  */
    size_t sram_size;
+   uint8_t *rtc;                /* the cartridge clock, where the core has one */
+   size_t rtc_size;
+   uint32_t rtc_crc;
    uint32_t sram_crc;           /* of what the file holds / last write     */
    int battery_failed;
    unsigned save_fails;
@@ -253,6 +293,12 @@ static void options_tune(int ci)
       opt_set("genesis_plus_gx_blargg_ntsc_filter", "disabled");
       opt_set("genesis_plus_gx_render", "single field");
    }
+   else if (ci == FR_GB)
+   {
+      /* an original Game Boy game gets the Game Boy Color's colours for it
+       * when the cartridge names one, as a GBC does */
+      opt_set("gambatte_gb_colorization", "auto");
+   }
    else if (ci == FR_NES)
    {
       opt_set("fceumm_ntsc_filter", "disabled");
@@ -268,13 +314,14 @@ static void options_tune(int ci)
 static int opt_hidden(const char *key)
 {
    return strstr(key, "ntsc") != NULL || strstr(key, "_render") != NULL ||
-          strstr(key, "audio_filter") != NULL;
+          strstr(key, "audio_filter") != NULL ||
+          strstr(key, "audio_resampler") != NULL;
 }
 
 static int options_file_path(char *out, size_t cap)
 {
-   static const char *const tag[] = { "md", "nes", "snes" };
-   const char *t = R.ci >= 0 && R.ci < 3 ? tag[R.ci] : "core";
+   static const char *const tag[] = { "md", "nes", "snes", "gb" };
+   const char *t = R.ci >= 0 && R.ci < 4 ? tag[R.ci] : "core";
    if (!R.cfg.options_dir || !R.cfg.options_dir[0])
       return -1;
    return snprintf(out, cap, "%s/%s.ini", R.cfg.options_dir, t) < (int)cap
@@ -645,10 +692,61 @@ static void recover_bak(const char *path)
    }
 }
 
+/* The clock of a Game Boy cartridge (Gambatte keeps it apart from the RAM)
+ * lives in <save>.rtc. */
+static void rtc_load(void)
+{
+   char path[600];
+   FILE *f;
+   R.rtc = (uint8_t *)R.api->get_memory_data(RETRO_MEMORY_RTC);
+   R.rtc_size = R.api->get_memory_size(RETRO_MEMORY_RTC);
+   if (!R.rtc || !R.rtc_size || !R.cfg.save_path)
+   {
+      R.rtc = NULL;
+      R.rtc_size = 0;
+      return;
+   }
+   path_with(path, sizeof(path), R.cfg.save_path, ".rtc");
+   f = fopen(path, "rb");
+   if (f)
+   {
+      if (fread(R.rtc, 1, R.rtc_size, f) != R.rtc_size)
+         fe_log("retro_rtc_load short file %s", path);
+      fclose(f);
+   }
+   R.rtc_crc = crc32_of(R.rtc, R.rtc_size);
+}
+
+static void rtc_flush(int force)
+{
+   char path[600];
+   FILE *f;
+   uint32_t crc;
+   if (!R.rtc || !R.rtc_size || !R.cfg.save_path)
+      return;
+   R.rtc = (uint8_t *)R.api->get_memory_data(RETRO_MEMORY_RTC);
+   if (!R.rtc)
+      return;
+   crc = crc32_of(R.rtc, R.rtc_size);
+   if (!force && crc == R.rtc_crc)
+      return;
+   path_with(path, sizeof(path), R.cfg.save_path, ".rtc");
+   f = fopen(path, "wb");
+   if (f && fwrite(R.rtc, 1, R.rtc_size, f) == R.rtc_size && fclose(f) == 0)
+      R.rtc_crc = crc;
+   else
+   {
+      if (f)
+         fclose(f);
+      fe_evt("retro_rtc_write FAILED file=%s", path);
+   }
+}
+
 static int battery_load(void)
 {
    FILE *f;
    size_t n;
+   rtc_load();
    R.sram = (uint8_t *)R.api->get_memory_data(RETRO_MEMORY_SAVE_RAM);
    R.sram_size = R.api->get_memory_size(RETRO_MEMORY_SAVE_RAM);
    R.battery_failed = 0;
@@ -687,7 +785,16 @@ static int battery_load(void)
    return 0;
 }
 
+static int sram_flush_body(int force);
+
 int fe_retro_sram_flush(int force)
+{
+   int rc = sram_flush_body(force);
+   rtc_flush(force);
+   return rc;
+}
+
+static int sram_flush_body(int force)
 {
    char tmp[600], bak[600];
    uint32_t crc;
@@ -747,7 +854,7 @@ failed:
 
 void fe_retro_sram_service(unsigned frame)
 {
-   if (R.active && R.sram && (frame % 300u) == 0)
+   if (R.active && (R.sram || R.rtc) && (frame % 300u) == 0)
       (void)fe_retro_sram_flush(0);
 }
 
@@ -979,6 +1086,26 @@ uint32_t fe_retro_ram_read(uint32_t addr, uint8_t *out, uint32_t len)
    uint32_t i;
    if (!R.active || !out)
       return 0;
+   if (R.ci == FR_GB)
+   {
+      /* RetroAchievements reads a Game Boy by bus address: the work RAM at
+       * C000-DFFF and the cartridge RAM at A000-BFFF are what the core
+       * hands over; the rest reads as 0. */
+      const uint8_t *wram = (const uint8_t *)
+         R.api->get_memory_data(RETRO_MEMORY_SYSTEM_RAM);
+      size_t wsz = R.api->get_memory_size(RETRO_MEMORY_SYSTEM_RAM);
+      for (i = 0; i < len; i++)
+      {
+         uint32_t a = addr + i;
+         if (a >= 0xC000 && a < 0xE000 && wram && a - 0xC000 < wsz)
+            out[i] = wram[a - 0xC000];
+         else if (a >= 0xA000 && a < 0xC000 && R.sram && a - 0xA000 < R.sram_size)
+            out[i] = R.sram[a - 0xA000];
+         else
+            out[i] = 0;
+      }
+      return len;
+   }
    ram = (const uint8_t *)R.api->get_memory_data(RETRO_MEMORY_SYSTEM_RAM);
    size = R.api->get_memory_size(RETRO_MEMORY_SYSTEM_RAM);
    for (i = 0; i < len; i++)

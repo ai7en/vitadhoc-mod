@@ -3,6 +3,8 @@
 #   md    Genesis Plus GX   (gpsp/retro/genesis_plus_gx)  Mega Drive / Genesis
 #   nes   FCEUmm            (gpsp/retro/fceumm)           NES / Famicom
 #   snes  Snes9x 2005       (gpsp/retro/snes9x2005)       Super Nintendo
+#   gmb   Gambatte          (gpsp/retro/gambatte)         Game Boy / Color
+#                           (the player's choice against TGB Dual)
 #
 # Each is an unmodified libretro core.  It is built with its own makefile
 # (platform=vita, in a private copy under build/vita/retro/<core>-src, so the
@@ -66,12 +68,13 @@ RC_JOBS ?= 4
 $(eval $(call RC_CORE,md,genesis_plus_gx,genesis_plus_gx_libretro_vita.a,$(MAKE) -f Makefile.libretro platform=vita))
 $(eval $(call RC_CORE,nes,fceumm,fceumm_libretro_vita.a,$(MAKE) -f Makefile.libretro platform=vita))
 $(eval $(call RC_CORE,snes,snes9x2005,snes9x2005_libretro_vita.a,$(MAKE) platform=vita))
+$(eval $(call RC_CORE,gmb,gambatte,gambatte_libretro_vita.a,$(MAKE) -f Makefile.libretro platform=vita))
 
 # fe_retro.c, the frontend side, is in corebuild.mk's FE_OBJS (the host twin
 # builds it too, without FE_RETRO_CORES: every retro console then reports
 # itself unavailable).
 ifeq ($(RETRO_CORES),1)
-RC_OBJS := $(RC_B)/md.o $(RC_B)/nes.o $(RC_B)/snes.o
+RC_OBJS := $(RC_B)/md.o $(RC_B)/nes.o $(RC_B)/snes.o $(RC_B)/gmb.o
 FE_FLAGS += -DFE_RETRO_CORES=1
 APP_DEFS += -DFE_RETRO_CORES=1
 else

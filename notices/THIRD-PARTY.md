@@ -109,6 +109,11 @@ clarification and the remaining package review.
   are not GPL-compatible: a package containing them may not be sold or used
   commercially, and this combined-work question is open like the others
   above.
+- **Gambatte (Game Boy / Game Boy Color engine, optional):** the libretro
+  port of Gambatte (GPL-2.0, `licenses/Gambatte-GPL-2.0.txt`), unmodified
+  source under `gpsp/retro/gambatte/`, revision
+  `77f2567d718b8973d02caa2daa8dce4953faf811`, linked as an isolated object
+  like the cores above; Settings > GAMEPLAY chooses it or TGB Dual.
 
 - **Game descriptions:** English Wikipedia contributors, CC BY-SA 4.0.
   Article and history links, adaptation notes and attribution are in

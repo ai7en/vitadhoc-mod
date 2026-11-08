@@ -172,6 +172,9 @@ typedef struct
     * so the game's time and its sound stay at full speed (default);
     * 0 = the game simply runs late. */
    int  full_speed;
+   /* Game Boy and Game Boy Color engine (Settings > GAMEPLAY, CONFIG.INI
+    * gb_engine): 1 Gambatte (default), 0 TGB Dual. */
+   int  gb_engine;
    /* Order of the game list (Settings > LIBRARY > Game order, CONFIG.INI
     * lib_sort): 0 by name, 1 most recently played first, 2 most played
     * first (psp/play_log.h). */

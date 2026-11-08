@@ -2328,7 +2328,7 @@ enum { SET_HDR_WL, SET_NAME, SET_CONN, SET_ROOM, SET_LINKMODE, SET_DELAY,
        SET_HDR_UI, SET_THEME, SET_SHELL, SET_PREVIEW, SET_COVERS, SET_REFRESH,
        SET_SHOTDIR,
        SET_HDR_GAME, SET_FFMULT, SET_FFMODE, SET_REWIND, SET_FPS,
-       SET_SPEED,
+       SET_SPEED, SET_GBENGINE,
        /* Between GAMEPLAY and CONTROLS: every row a harness walker crosses
         * keeps its place, and Button mapping stays last.  LIBRARY is the
         * browser's only, THIS GAME a running game's only (set_row_shown). */
@@ -2449,6 +2449,7 @@ static const struct { unsigned char header; const char *label; } set_rows[SET_CO
    /* After FPS counter, so the rows the harness walkers cross keep their
     * places. */
    { 0, "Keep full speed" },
+   { 0, "GB / GBC emulator" },
    { 1, "RETROACHIEVEMENTS" },
    { 0, "Account" },
    { 0, "Hardcore" },
@@ -2512,13 +2513,19 @@ static int set_row_shown(int idx)
       return !g_ov_browse && co_available();
    /* Interface and gameplay settings belong to the home screen's Settings,
     * not to the quick menu of a running game. */
-   if (idx >= SET_HDR_UI && idx <= SET_SPEED && !g_ov_browse)
+   if (idx >= SET_HDR_UI && idx <= SET_GBENGINE && !g_ov_browse)
       return 0;
+   if (idx == SET_GBENGINE)
+      return fe_retro_available(FE_CONSOLE_GB);
    /* A Game Boy palette, a Super Game Boy border and the GBA/GBC colour
     * correction mean nothing to the libretro consoles. */
    if ((idx == SET_GBPAL || idx == SET_SGB || idx == SET_COLOR ||
         idx == SET_WIDE || idx == SET_WFILL) &&
-       fe_console_is_retro(pcfg_display_console()))
+       (fe_console_is_retro(pcfg_display_console()) ||
+        ((pcfg_display_console() == FE_CONSOLE_GB ||
+          pcfg_display_console() == FE_CONSOLE_GBC) && g_pcfg.gb_engine &&
+         fe_retro_available(FE_CONSOLE_GB) &&
+         (idx != SET_WIDE && idx != SET_WFILL))))
       return 0;
    if (idx >= SET_HDR_THIS && idx <= SET_SUN)
    {
@@ -3150,6 +3157,11 @@ static void settings_adjust(int id, int dir)
       g_pcfg.show_fps = !g_pcfg.show_fps;
       break;
 #ifdef VITA
+   case SET_GBENGINE:
+      g_pcfg.gb_engine = !g_pcfg.gb_engine;
+      fe_retro_set_gb_engine(g_pcfg.gb_engine);
+      fe_evt("gb_engine_setting gambatte=%d", g_pcfg.gb_engine);
+      break;
    case SET_SPEED:
       g_pcfg.full_speed = !g_pcfg.full_speed;
       fe_evt("full_speed_setting on=%d", g_pcfg.full_speed);
@@ -3542,6 +3554,9 @@ static const char *set_help(int id)
    }
    case SET_FPS:      return "Shows the game's speed in a corner.";
 #ifdef VITA
+   case SET_GBENGINE: return g_pcfg.gb_engine
+                             ? "Gambatte: the more accurate one, for most games."
+                             : "TGB Dual: the older one; it also plays tilt games.";
    case SET_SPEED:    return g_pcfg.full_speed
                              ? "Busy moments skip a frame: no slowdown, "
                                "no stuttering sound."
@@ -4174,6 +4189,10 @@ static ui_action screen_settings(unsigned edges)
       case SET_SPEED:
          set_item(y, g_cursor == i, 1, set_rows[i].label,
              g_pcfg.full_speed ? "on" : "off");
+         break;
+      case SET_GBENGINE:
+         set_item(y, g_cursor == i, 1, set_rows[i].label,
+             g_pcfg.gb_engine ? "Gambatte" : "TGB Dual");
          break;
       case SET_SGB:
       {

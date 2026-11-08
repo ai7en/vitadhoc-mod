@@ -2,6 +2,9 @@
 
 ## Unreleased
 
+- New Settings > GAMEPLAY > GB / GBC emulator (home screen): Gambatte (default) or TGB Dual. Gambatte plays Game Boy and Game Boy Color games through its own core options (Settings > THIS GAME > Core options, kept in `ux0:data/RetroAdhoc/cores/gb.ini`), keeps a cartridge clock in `<game>.sav.rtc`, and reads RetroAchievements from work RAM. Tilt games (MBC7), zipped games and link play stay on TGB Dual; a game Gambatte does not load starts on TGB Dual. Save states of one engine do not load on the other; battery saves do.
+- Wide view rows are hidden for Genesis, NES and SNES.
+
 - Home screen: the game's Wikipedia lines and the name beside the icon are gone (the name stays under the row); search, settings, time and battery sit on one rounded plate; the key hints at the bottom right are a plate of button faces and key caps (Search, Console, Settings, Lists).
 - Settings in a running game no longer list Interface and Gameplay (they stay in the home screen's Settings); Genesis, NES and SNES no longer show GB palette, SGB border and Colours.
 

@@ -132,7 +132,7 @@ LIBS     := $(APP_LIBS_VITA) $(VITA_UI_LIBS) $(NET_VITA_LIBS) \
             -lSceAppUtil_stub -lSceCommonDialog_stub -lSceDisplay_stub \
             -lSceCtrl_stub -lSceAudio_stub -lScePower_stub -lSceRtc_stub \
             -lSceMotion_stub \
-            -lSceSysmem_stub -lSceLibKernel_stub -lm
+            -lSceSysmem_stub -lSceLibKernel_stub -lstdc++ -lm
 # A private build may carry its owner's own GBA BIOS dump, read by the app
 # from app0:gba_bios.bin when ux0:data/RetroAdhoc has none (main_vita.c
 # app_bios_dir).  The file is never part of the repository:

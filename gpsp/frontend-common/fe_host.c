@@ -4038,7 +4038,9 @@ int fe_host_boot(const fe_host_config *cfg)
    gb_save_crc_valid = 0;
    gb_skip_frame = 0;
 
-   retro_family = fe_console_is_retro(host.console);
+   retro_family = fe_console_is_retro(host.console) ||
+                  (!host.gb_dual_rom &&
+                   fe_retro_gb_wanted(host.console, host.rom_path));
    if (retro_family)
    {
       fe_retro_config rc;
@@ -4062,13 +4064,17 @@ int fe_host_boot(const fe_host_config *cfg)
          retro_family = 0;
          fe_log("retro boot FAILED for %s console=%d", host.rom_path,
                 (int)host.console);
-         return -1;
+         if (fe_console_is_retro(host.console))
+            return -1;
+         /* a Game Boy game Gambatte would not take: TGB Dual plays it */
+         goto not_retro;
       }
       core_sample_rate = fe_retro_sample_rate();
       fps_last_us = host.time_us ? host.time_us() : 0;
       fe_evt("retro_backend ready console=%d", (int)host.console);
       return 0;
    }
+not_retro:
    gb_family = host.console == FE_CONSOLE_GB || host.console == FE_CONSOLE_GBC;
    if (gb_family)
    {

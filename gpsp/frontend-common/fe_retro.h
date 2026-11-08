@@ -24,6 +24,12 @@ extern "C" {
 /* 1 for the consoles this frontend runs through a libretro core. */
 int fe_console_is_retro(fe_console_t console);
 
+/* The Game Boy engine: 1 Gambatte, 0 TGB Dual.  fe_retro_gb_wanted says
+ * whether this game of a GB or GBC runs on Gambatte (chosen, linked, and a
+ * cartridge it plays). */
+void fe_retro_set_gb_engine(int gambatte);
+int fe_retro_gb_wanted(fe_console_t console, const char *rom_path);
+
 /* 1 when the core for `console` is linked into this build. */
 int fe_retro_available(fe_console_t console);
 
