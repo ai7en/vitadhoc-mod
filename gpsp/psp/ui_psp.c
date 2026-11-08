@@ -2509,6 +2509,8 @@ static int set_row_shown(int idx)
    if (idx == SET_HDR_RA || idx == SET_RA_LIST)
       return g_ov_browse ? idx == SET_HDR_RA
                          : ra_summary(NULL, NULL, NULL, NULL, NULL);
+   if (idx == SET_SHELL)
+      return 0;
    if (idx == SET_COREOPT)
       return !g_ov_browse && co_available();
    /* Interface and gameplay settings belong to the home screen's Settings,
@@ -12314,12 +12316,17 @@ int ui_browser(const char *rom_dir, char *out, size_t out_sz,
             fx_reset();
             skipped = 1;
          }
-         switch_begin((g_pcfg.console + FE_CONSOLE_COUNT + sw_dir) %
-                      FE_CONSOLE_COUNT);
+         /* No animation: the list changes at once, and the top bar's plate
+          * glides to the new console (ui_vita_home.h). */
+         g_sw.to = (g_pcfg.console + FE_CONSOLE_COUNT + sw_dir) %
+                   FE_CONSOLE_COUNT;
          g_pop.active = 0;
          g_swap.active = 0;
          fe_evt("ui_browser_switch from=%d to=%d skipped=%d",
                 g_pcfg.console, g_sw.to, skipped);
+         browser_switch_apply(rom_dir, &n_scan, &n, &cur, &idle);
+         g_sw.active = 0;
+         fx_reset();
          FE_EVT_ONLY(skipped);
       }
       if (g_sw.active)

@@ -975,16 +975,42 @@ static float hm_topbar(float dy, int n_scan)
 
    /* the consoles: L / R step through them; a tap on one steps toward it */
    cx = x;
+   {
+      /* the plate under the current console glides to the next one */
+      static float pill_x, pill_w;
+      static int pill_ok;
+      float px = x, tx = x, tw = 0;
+      for (c = 0; c < FE_CONSOLE_COUNT; c++)
+      {
+         float w = vs_text_w(VS_LABEL, CON[c]) + 22;
+         if (c == g_pcfg.console)
+         {
+            tx = px;
+            tw = w;
+         }
+         px += w + 2;
+      }
+      if (!pill_ok)
+      {
+         pill_x = tx;
+         pill_w = tw;
+         pill_ok = 1;
+      }
+      pill_x += (tx - pill_x) * 0.30f;
+      pill_w += (tw - pill_w) * 0.30f;
+      if (pill_x - tx < 0.5f && tx - pill_x < 0.5f)
+         pill_x = tx;
+      if (pill_w - tw < 0.5f && tw - pill_w < 0.5f)
+         pill_w = tw;
+      vs_rrect(pill_x, y + 2, pill_w, 34, 17, HC_GLASS_HI);
+   }
    for (c = 0; c < FE_CONSOLE_COUNT; c++)
    {
       float w = vs_text_w(VS_LABEL, CON[c]) + 22;
       /* the capitals' middle on the plate's middle, not the line box's */
       float ty = y + 19.0f - (float)vs_ascent(VS_LABEL) + 8.75f;
       if (c == g_pcfg.console)
-      {
-         vs_rrect(x, y + 2, w, 34, 17, HC_GLASS_HI);
          vs_text(VS_LABEL, x + 11, ty, CON[c], HC_TEXT);
-      }
       else
       {
          vs_text(VS_LABEL, x + 11, ty, CON[c], HC_TEXT3);

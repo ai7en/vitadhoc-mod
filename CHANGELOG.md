@@ -2,6 +2,9 @@
 
 ## Unreleased
 
+- Switching consoles (L / R) no longer plays the band animation: the list changes at once and the plate behind the console names glides to the new one.
+- Settings > INTERFACE no longer offers the list style (shelf, marquee): the home screen is the only one; an old `ui_home=0` in the config is ignored.
+
 - New Settings > GAMEPLAY > GB / GBC emulator (home screen): Gambatte (default) or TGB Dual. Gambatte plays Game Boy and Game Boy Color games through its own core options (Settings > THIS GAME > Core options, kept in `ux0:data/RetroAdhoc/cores/gb.ini`), keeps a cartridge clock in `<game>.sav.rtc`, and reads RetroAchievements from work RAM. Tilt games (MBC7), zipped games and link play stay on TGB Dual; a game Gambatte does not load starts on TGB Dual. Save states of one engine do not load on the other; battery saves do.
 - Wide view rows are hidden for Genesis, NES and SNES.
 

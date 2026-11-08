@@ -173,7 +173,8 @@ void pcfg_load_doc(const char *ini_path, fe_ini_doc *doc)
    g_pcfg.theme       = (int)fe_ini_get_int(cfg_path, "theme", 0) ? 1 : 0;
    g_pcfg.ui_shell    = (int)fe_ini_get_int(cfg_path, "ui_shell", 0) ? 1 : 0;
 #ifdef VITA
-   g_pcfg.ui_home     = (int)fe_ini_get_int(cfg_path, "ui_home", 1) ? 1 : 0;
+   /* the home screen is the only game list: an old ui_home=0 is ignored */
+   g_pcfg.ui_home     = 1;
    g_pcfg.previews    = (int)fe_ini_get_int(cfg_path, "previews", 1) ? 1 : 0;
    g_pcfg.full_speed  = (int)fe_ini_get_int(cfg_path, "full_speed", 1) ? 1 : 0;
    g_pcfg.gb_engine   = (int)fe_ini_get_int(cfg_path, "gb_engine", 1) ? 1 : 0;
