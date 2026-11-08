@@ -515,6 +515,7 @@ static int pcfg_validate(const char *when)
 
 int pcfg_remember_rom(const char *name)
 {
+   pcfg_console_tick(1);   /* a game starts: the console key is due */
    if (!cfg_path[0] || !name || !name[0] ||
        strlen(name) >= sizeof(g_pcfg.last_rom))
       return -1;
@@ -565,6 +566,29 @@ long pcfg_gb_rtc_utc_since(long now_local)
    return now_local;
 }
 
+static int g_console_wait;   /* frames until the console is written; 0 = clean */
+
+/* The console key goes to the card shortly after the last switch, not in
+ * the frame of each one: the write is a whole-file INI rewrite. */
+static int console_write(void)
+{
+   fe_ini_doc doc;
+   int rc;
+   g_console_wait = 0;
+   if (!cfg_path[0] || pcfg_doc_begin(&doc, "console") != 0)
+      return -1;
+   rc = fe_ini_set_int(cfg_path, "console", g_pcfg.console);
+   if (pcfg_doc_end(&doc, "console") != 0 || rc != 0)
+      return -1;
+   return 0;
+}
+
+void pcfg_console_tick(int force)
+{
+   if (g_console_wait && (force || --g_console_wait == 0))
+      (void)console_write();
+}
+
 int pcfg_remember_console(int console)
 {
    if (console < FE_CONSOLE_GBA || console >= FE_CONSOLE_COUNT)
@@ -577,15 +601,7 @@ int pcfg_remember_console(int console)
     * whole-file INI rewrites, which every TRIANGLE press used to pay. */
    if (!cfg_path[0])
       return -1;
-   {
-      fe_ini_doc doc;
-      int rc;
-      if (pcfg_doc_begin(&doc, "console") != 0)
-         return -1;
-      rc = fe_ini_set_int(cfg_path, "console", console);
-      if (pcfg_doc_end(&doc, "console") != 0 || rc != 0)
-         return -1;
-   }
+   g_console_wait = 45;
    return 0;
 }
 
@@ -729,6 +745,7 @@ void pcfg_save(void)
    }
 #endif
    fe_ini_set_int(cfg_path, "console", g_pcfg.console);
+   g_console_wait = 0;
    if (g_pcfg.last_rom[0])
       fe_ini_set(cfg_path, "last_rom", g_pcfg.last_rom);
    /* Writes nothing for a player who never remapped (see ctl_map.keep). */

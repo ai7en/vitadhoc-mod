@@ -578,6 +578,7 @@ int pcfg_remember_rom(const char *name);
 /* Browser console switch (TRIANGLE): sets g_pcfg.console and writes only the
  * `console` key.  Returns -1 on an invalid value or persistence failure. */
 int pcfg_remember_console(int console);
+void pcfg_console_tick(int force);   /* writes it ~45 frames on, or at once */
 
 /* ---- PER-CONSOLE DISPLAY PROFILES (docs/DISPLAY-FEATURES.md) ------------
  *

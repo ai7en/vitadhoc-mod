@@ -2,6 +2,9 @@
 
 ## Unreleased
 
+- Switching consoles is quicker: the console is written to the config about 0.75 s after the last switch, not in the frame of each one; the log line `ui_browser_console` now lists `scan_us` and `total_us`.
+- Settings: a long value (the folder list) is cut to the room beside its label instead of being drawn over it.
+
 - Switching consoles (L / R) no longer plays the band animation: the list changes at once and the plate behind the console names glides to the new one.
 - Settings > INTERFACE no longer offers the list style (shelf, marquee): the home screen is the only one; an old `ui_home=0` in the config is ignored.
 

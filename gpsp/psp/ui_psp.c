@@ -3387,8 +3387,17 @@ static void set_item(int y, int sel, int enabled, const char *label,
       ov_band(y, SET_BAND_W, SET_BAND_H);
    vid_text(30, y, label, enabled ? (sel ? C_SEL : C_ITEM) : C_DIM);
    if (value)
-      ov_text_right(440, y, value,
+   {
+      /* a long value (the folder list) is cut to the room the label leaves,
+       * not drawn over it */
+      char v[128];
+      int room = 440 - (30 + vid_text_w(label) + 28);
+      snprintf(v, sizeof(v), "%s", value);
+      if (room > 40 && vid_text_w(v) > room)
+         clip_title(v, room);
+      ov_text_right(440, y, v,
                     enabled ? (sel ? C_VALUE : C_ACCENT_DK) : C_DIM);
+   }
 }
 
 #ifdef VITA
@@ -11765,9 +11774,11 @@ static void browser_switch_apply(const char *rom_dir, int *n_scan, int *n,
                                  int *cur, int *idle)
 {
    int i;
+   unsigned long long t0 = fe_evt_now_us(), t1;
    if (pcfg_remember_console(g_sw.to) != 0)
       fe_log("Could not remember console: %d", g_sw.to);
    *n_scan = rom_scan_cached(rom_dir, (fe_console_t)g_pcfg.console);
+   t1 = fe_evt_now_us();
    if (*n_scan < 0)
       *n_scan = 0;
    favs_mark(*n_scan);
@@ -11784,8 +11795,9 @@ static void browser_switch_apply(const char *rom_dir, int *n_scan, int *n,
    g_marq_idx = -1;
    *idle = 0;
    g_sw.swapped = 1;
-   fe_evt("ui_browser_console console=%d roms=%d found=%d",
-          g_pcfg.console, *n_scan, g_rom_found);
+   fe_evt("ui_browser_console console=%d roms=%d found=%d scan_us=%u total_us=%u",
+          g_pcfg.console, *n_scan, g_rom_found, (unsigned)(t1 - t0),
+          (unsigned)(fe_evt_now_us() - t0));
 }
 
 #ifdef VITA
@@ -12329,6 +12341,7 @@ int ui_browser(const char *rom_dir, char *out, size_t out_sz,
          fx_reset();
          FE_EVT_ONLY(skipped);
       }
+      pcfg_console_tick(0);
       if (g_sw.active)
       {
          if (switch_step())
