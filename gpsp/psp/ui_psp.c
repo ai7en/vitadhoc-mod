@@ -2334,7 +2334,7 @@ enum { SET_HDR_WL, SET_NAME, SET_CONN, SET_ROOM, SET_LINKMODE, SET_DELAY,
         * browser's only, THIS GAME a running game's only (set_row_shown). */
        /* The account and Hardcore in the browser; a running game's list
         * in game, when it has achievements (ra_vita.h). */
-       SET_HDR_RA, SET_RA_ACCOUNT, SET_RA_HARDCORE, SET_RA_LIST,
+       SET_HDR_RA, SET_RA_ACCOUNT, SET_RA_HARDCORE, SET_RA_OFFLINE, SET_RA_LIST,
        SET_HDR_LIB, SET_FOLDERS, SET_SORT, SET_SS,
        SET_HDR_THIS, SET_OWN_LOOK, SET_MOTION, SET_SENS, SET_REVERSE,
        SET_LEVEL, SET_SUN, SET_COREOPT,
@@ -2453,6 +2453,7 @@ static const struct { unsigned char header; const char *label; } set_rows[SET_CO
    { 1, "RETROACHIEVEMENTS" },
    { 0, "Account" },
    { 0, "Hardcore" },
+   { 0, "Offline mode" },
    { 0, "Achievements" },
    { 1, "LIBRARY" },
    /* Folders of games beside roms/ (vita.ini extra_roms; GitHub #5).
@@ -2504,7 +2505,8 @@ static int set_row_shown(int idx)
    if (idx == SET_HDR_LIB || idx == SET_SORT || idx == SET_FOLDERS ||
        idx == SET_SS)
       return g_ov_browse;
-   if (idx == SET_RA_ACCOUNT || idx == SET_RA_HARDCORE)
+   if (idx == SET_RA_ACCOUNT || idx == SET_RA_HARDCORE ||
+       idx == SET_RA_OFFLINE)
       return g_ov_browse;
    if (idx == SET_HDR_RA || idx == SET_RA_LIST)
       return g_ov_browse ? idx == SET_HDR_RA
@@ -3176,6 +3178,9 @@ static void settings_adjust(int id, int dir)
    case SET_RA_HARDCORE:
       ra_hardcore_set(!ra_hardcore_pref());
       break;
+   case SET_RA_OFFLINE:
+      ra_offline_set(!ra_offline_pref());
+      break;
    case SET_RA_ACCOUNT:
    case SET_RA_LIST:
       /* not values: X acts (screen_settings) */
@@ -3580,6 +3585,10 @@ static const char *set_help(int id)
                              ? "No states, rewind or cheats. From the next "
                                "game."
                              : "States, rewind and cheats allowed.";
+   case SET_RA_OFFLINE: return ra_offline_pref()
+                             ? "Achievements are earned on the console and "
+                               "sent to the server once a day."
+                             : "Achievements are sent to the server at once.";
    case SET_RA_LIST:  return "This game's achievements and what each asks.";
    case SET_SORT:     return "The order of All games and Starred. Recent is "
                              "newest first.";
@@ -4229,6 +4238,16 @@ static ui_action screen_settings(unsigned edges)
          set_item(y, g_cursor == i, 1, set_rows[i].label,
                   ra_hardcore_pref() ? "on (from the next game)" : "off");
          break;
+      case SET_RA_OFFLINE:
+      {
+         char v[48];
+         if (ra_offline_pref() && ra_offline_waiting())
+            snprintf(v, sizeof(v), "on (%d waiting)", ra_offline_waiting());
+         else
+            snprintf(v, sizeof(v), "%s", ra_offline_pref() ? "on" : "off");
+         set_item(y, g_cursor == i, 1, set_rows[i].label, v);
+         break;
+      }
       case SET_RA_LIST:
       {
          unsigned have = 0, total = 0;

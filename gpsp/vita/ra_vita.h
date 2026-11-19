@@ -60,6 +60,11 @@ void ra_logout(void);
 /* The Hardcore setting (for the next game started). */
 int  ra_hardcore_pref(void);
 void ra_hardcore_set(int on);
+/* Offline mode (default on): the server's answers are kept 24 hours, unlocks
+ * are queued on the card and sent once a day.  Off: as before, online. */
+int  ra_offline_pref(void);
+void ra_offline_set(int on);
+int  ra_offline_waiting(void);       /* unlocks not yet sent */
 
 /* ---- a game ------------------------------------------------------------ */
 /* `boot_path` is the file the core runs (a patched copy when patched). */

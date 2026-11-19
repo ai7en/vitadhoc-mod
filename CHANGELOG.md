@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- New Settings > RETROACHIEVEMENTS > Offline mode (on by default): achievements are earned on the console without waiting for the server. The sign-in, the game's achievement list and the account's unlocks are kept in `ux0:data/RetroAdhoc/ra_cache/` and reused for 24 hours; an unlock shows at once and is written to `ra_queue.txt`, and the queue is sent to retroachievements.org once every 24 hours when Wi-Fi is there (the row shows how many are waiting). With the mode off, achievements go to the server at once as before, and a waiting queue is sent as soon as the network is there. Settings and the time of the last send are in `retroachievements-offline.txt`.
+
 - Switching consoles is quicker: the console is written to the config about 0.75 s after the last switch, not in the frame of each one; the log line `ui_browser_console` now lists `scan_us` and `total_us`.
 - Settings: a long value (the folder list) is cut to the room beside its label instead of being drawn over it.
 

@@ -160,6 +160,9 @@ UI_WEAK int  ra_login(const char *user, const char *password)
 UI_WEAK void ra_logout(void) { }
 UI_WEAK int  ra_hardcore_pref(void) { return 0; }
 UI_WEAK void ra_hardcore_set(int on) { (void)on; }
+UI_WEAK int  ra_offline_pref(void) { return 0; }
+UI_WEAK void ra_offline_set(int on) { (void)on; }
+UI_WEAK int  ra_offline_waiting(void) { return 0; }
 UI_WEAK int  ra_summary(unsigned *unlocked, unsigned *total,
                         unsigned *points_have, unsigned *points_total,
                         int *hardcore)
